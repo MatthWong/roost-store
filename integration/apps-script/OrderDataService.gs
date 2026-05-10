@@ -1,0 +1,208 @@
+function getSheetByNameOrThrow_(name) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) {
+    throw new Error('Missing required sheet: ' + name);
+  }
+  return sheet;
+}
+
+function getHeaderIndexMap_(headers) {
+  var map = {};
+  for (var i = 0; i < headers.length; i += 1) {
+    map[String(headers[i]).trim()] = i;
+  }
+  return map;
+}
+
+function getAllRowsAsObjects_(sheetName) {
+  var sheet = getSheetByNameOrThrow_(sheetName);
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return [];
+  }
+
+  var headers = values[0];
+  var rows = [];
+  for (var rowIndex = 1; rowIndex < values.length; rowIndex += 1) {
+    var rowValues = values[rowIndex];
+    var rowObj = {};
+    for (var colIndex = 0; colIndex < headers.length; colIndex += 1) {
+      rowObj[String(headers[colIndex]).trim()] = rowValues[colIndex];
+    }
+    rows.push(rowObj);
+  }
+  return rows;
+}
+
+function getFallbackPaymentLinkMap() {
+  var rows = getAllRowsAsObjects_(AppConfig.sheets.paymentLinks);
+  return rows.reduce(function(acc, row) {
+    var sku = String(row.SKU || '').trim();
+    var link = String(row.PaymentLink || '').trim();
+    if (sku && link) {
+      acc[sku] = link;
+    }
+    return acc;
+  }, {});
+}
+
+function getStorefrontProducts() {
+  if (isSquareApiEnabled()) {
+    var catalog = listSquareCatalogItems();
+    var objects = catalog.objects || [];
+    return objects
+      .filter(function(obj) { return obj.type === 'ITEM'; })
+      .map(function(item) {
+        var data = item.item_data || {};
+        return {
+          productId: item.id,
+          name: data.name || '',
+          description: data.description || '',
+          sku: '',
+          priceCents: null,
+          source: 'square-api'
+        };
+      });
+  }
+
+  return getAllRowsAsObjects_(AppConfig.sheets.products).map(function(row) {
+    return {
+      productId: String(row.ProductID || ''),
+      name: String(row.Name || ''),
+      description: String(row.Description || ''),
+      sku: String(row.SKU || ''),
+      priceCents: Number(row.PriceCents || 0),
+      paymentLink: String(row.PaymentLink || ''),
+      source: 'payment-links'
+    };
+  });
+}
+
+function getCustomerOrderStatus(orderNumber, receiptCode) {
+  var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return null;
+  }
+
+  var headers = values[0];
+  var index = getHeaderIndexMap_(headers);
+  var orderNumberCol = index.OrderNumber;
+  var receiptCodeCol = index.ReceiptCode;
+  var statusCol = index.Status;
+  var pickupWindowCol = index.PickupWindow;
+  var updatedAtCol = index.UpdatedAt;
+  var orderTypeCol = index.OrderType;
+  var quoteRequiredCol = index.QuoteRequired;
+  var permanentOrderNumberCol = index.PermanentOrderNumber;
+  var temporaryOrderIdCol = index.TemporaryOrderID;
+  var paymentLinkCol = index.PaymentLink;
+
+  if (
+    orderNumberCol === undefined ||
+    receiptCodeCol === undefined ||
+    statusCol === undefined ||
+    pickupWindowCol === undefined
+  ) {
+    throw new Error('Orders sheet is missing required headers.');
+  }
+
+  for (var i = 1; i < values.length; i += 1) {
+    var row = values[i];
+    var rowOrderNumber = String(row[orderNumberCol] || '').trim();
+    var rowReceiptCode = String(row[receiptCodeCol] || '').trim();
+    if (rowOrderNumber === String(orderNumber).trim() && rowReceiptCode === String(receiptCode).trim()) {
+      var lineItems = getOrderItemsByOrderNumber_(rowOrderNumber);
+      return {
+        orderNumber: rowOrderNumber,
+        temporaryOrderId: temporaryOrderIdCol !== undefined ? String(row[temporaryOrderIdCol] || '') : '',
+        permanentOrderNumber: permanentOrderNumberCol !== undefined ? String(row[permanentOrderNumberCol] || '') : '',
+        orderType: orderTypeCol !== undefined ? String(row[orderTypeCol] || '') : '',
+        quoteRequired: quoteRequiredCol !== undefined ? String(row[quoteRequiredCol] || '').toLowerCase() === 'true' : false,
+        status: String(row[statusCol] || ''),
+        pickupWindow: String(row[pickupWindowCol] || ''),
+        paymentLink: paymentLinkCol !== undefined ? String(row[paymentLinkCol] || '') : '',
+        lineItems: lineItems,
+        updatedAt: updatedAtCol !== undefined ? row[updatedAtCol] : null
+      };
+    }
+  }
+
+  return null;
+}
+
+function addOrderItemRows_(orderNumber, orderItems) {
+  if (!orderItems || !orderItems.length) {
+    return;
+  }
+
+  var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orderItems);
+  var values = sheet.getDataRange().getValues();
+  if (!values.length) {
+    throw new Error('OrderItems sheet missing header row.');
+  }
+
+  var index = getHeaderIndexMap_(values[0]);
+  var rows = orderItems.map(function(item) {
+    return buildOrderItemRow_(index, {
+      orderItemId: Utilities.getUuid(),
+      orderNumber: orderNumber,
+      apparelType: item.apparelType,
+      apparelSize: item.apparelSize,
+      quantity: item.quantity,
+      createdAt: new Date()
+    });
+  });
+
+  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, values[0].length).setValues(rows);
+}
+
+function getOrderItemsByOrderNumber_(orderNumber) {
+  var sheet;
+  try {
+    sheet = getSheetByNameOrThrow_(AppConfig.sheets.orderItems);
+  } catch (error) {
+    return [];
+  }
+
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return [];
+  }
+
+  var index = getHeaderIndexMap_(values[0]);
+  var orderNumberCol = index.OrderNumber;
+  if (orderNumberCol === undefined) {
+    return [];
+  }
+
+  return values.slice(1)
+    .filter(function(row) {
+      return String(row[orderNumberCol] || '').trim() === String(orderNumber).trim();
+    })
+    .map(function(row) {
+      return {
+        apparelType: index.ApparelType !== undefined ? String(row[index.ApparelType] || '') : '',
+        apparelSize: index.ApparelSize !== undefined ? String(row[index.ApparelSize] || '') : '',
+        quantity: index.Quantity !== undefined ? Number(row[index.Quantity] || 0) : 0
+      };
+    });
+}
+
+function buildOrderItemRow_(index, input) {
+  var width = Object.keys(index).length;
+  var row = new Array(width);
+  setValueByHeader_(row, index, 'OrderItemID', input.orderItemId);
+  setValueByHeader_(row, index, 'OrderNumber', input.orderNumber);
+  setValueByHeader_(row, index, 'ApparelType', input.apparelType);
+  setValueByHeader_(row, index, 'ApparelSize', input.apparelSize);
+  setValueByHeader_(row, index, 'Quantity', input.quantity);
+  setValueByHeader_(row, index, 'CreatedAt', input.createdAt);
+  return row;
+}
+
+function setValueByHeader_(row, index, header, value) {
+  if (index[header] !== undefined) {
+    row[index[header]] = value;
+  }
+}
