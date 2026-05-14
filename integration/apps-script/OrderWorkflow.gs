@@ -173,6 +173,15 @@ function updateOrderStatus(orderNumber, newStatus) {
         throw new Error('Invalid status transition from ' + currentStatus + ' to ' + newStatus);
       }
 
+      // Prevent moving to Picked Up until the order is marked as paid
+      if (newStatus === AppConfig.orderStatus.pickedUp) {
+        var isPaidIdx = firstDefinedIndex_(index, ['IsPaid', 'Is Paid', 'Paid']);
+        var isPaid = isPaidIdx !== undefined && String(values[row][isPaidIdx] || '').toLowerCase() === 'true';
+        if (!isPaid) {
+          throw new Error('Order ' + orderNumber + ' must be marked as paid before it can be Picked Up.');
+        }
+      }
+
       sheet.getRange(row + 1, statusCol + 1).setValue(newStatus);
 
       if (newStatus === AppConfig.orderStatus.inProduction && pickupWindowCol !== undefined) {
@@ -413,17 +422,21 @@ function isAllowedStatusTransition_(fromStatus, toStatus) {
   }
 
   var transitions = {};
-  transitions[AppConfig.orderStatus.submitted] = [AppConfig.orderStatus.underReview];
+  // Submitted: custom orders go to Under Review; non-custom go straight to In Production or Ready for Pickup
+  transitions[AppConfig.orderStatus.submitted] = [
+    AppConfig.orderStatus.underReview,
+    AppConfig.orderStatus.inProduction,
+    AppConfig.orderStatus.ready
+  ];
   transitions[AppConfig.orderStatus.underReview] = [
     AppConfig.orderStatus.quoteProvided,
     AppConfig.orderStatus.inProduction
   ];
   transitions[AppConfig.orderStatus.quoteProvided] = [AppConfig.orderStatus.quoteAccepted];
-  transitions[AppConfig.orderStatus.quoteAccepted] = [AppConfig.orderStatus.inProduction];
+  transitions[AppConfig.orderStatus.quoteAccepted] = [AppConfig.orderStatus.pendingProduction];
+  transitions[AppConfig.orderStatus.pendingProduction] = [AppConfig.orderStatus.inProduction];
   transitions[AppConfig.orderStatus.inProduction] = [AppConfig.orderStatus.ready];
   transitions[AppConfig.orderStatus.ready] = [AppConfig.orderStatus.pickedUp];
-  transitions[AppConfig.orderStatus.pending] = [AppConfig.orderStatus.processing, AppConfig.orderStatus.ready];
-  transitions[AppConfig.orderStatus.processing] = [AppConfig.orderStatus.ready];
 
   if (!transitions[fromStatus]) {
     return true;

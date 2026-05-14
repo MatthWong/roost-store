@@ -31,18 +31,18 @@ function getActiveProducts() {
     });
 }
 
-var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'In Production', 'Ready for Pickup'];
+var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'Quote Accepted', 'Pending Production', 'In Production', 'Ready for Pickup'];
 
 function getDashboardOrders() {
   var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
   var values = sheet.getDataRange().getValues();
   if (values.length < 2) {
-    return { needsReview: [], underReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+    return { needsReview: [], underReview: [], awaitingResponse: [], pendingProduction: [], inProduction: [], readyForPickup: [] };
   }
 
   var index = getHeaderIndexMap_(values[0]);
 
-  var queues = { needsReview: [], underReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+  var queues = { needsReview: [], underReview: [], awaitingResponse: [], pendingProduction: [], inProduction: [], readyForPickup: [] };
 
   // Resolve column indices that may appear under different header names
   var orderTypeIdx    = firstDefinedIndex_(index, ['OrderType', 'Order Type']);
@@ -70,11 +70,13 @@ function getDashboardOrders() {
       isPaid:           isPaidIdx              !== undefined ? String(row[isPaidIdx]              || '').toLowerCase() === 'true' : false
     };
 
-    if (status === 'Submitted')           { queues.needsReview.push(order); }
-    else if (status === 'Under Review')   { queues.underReview.push(order); }
-    else if (status === 'Quote Provided') { queues.awaitingResponse.push(order); }
-    else if (status === 'In Production')  { queues.inProduction.push(order); }
-    else if (status === 'Ready for Pickup') { queues.readyForPickup.push(order); }
+    if (status === 'Submitted')              { queues.needsReview.push(order); }
+    else if (status === 'Under Review')      { queues.underReview.push(order); }
+    else if (status === 'Quote Provided')    { queues.awaitingResponse.push(order); }
+    else if (status === 'Quote Accepted' ||
+             status === 'Pending Production'){ queues.pendingProduction.push(order); }
+    else if (status === 'In Production')     { queues.inProduction.push(order); }
+    else if (status === 'Ready for Pickup')  { queues.readyForPickup.push(order); }
   }
 
   return queues;

@@ -386,6 +386,14 @@
         <div class="queue-body" id="list-awaitingResponse"></div>
       </div>
 
+      <div class="queue" id="q-pendingProduction">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-o, #f97316);">
+          <h2>&#128336; Pending Production</h2>
+          <span class="count-badge" id="cnt-pendingProduction">0</span>
+        </div>
+        <div class="queue-body" id="list-pendingProduction"></div>
+      </div>
+
       <div class="queue" id="q-inProduction">
         <div class="queue-header" style="border-left: 3px solid var(--badge-b);">
           <h2>&#9881;&#65039; In Production</h2>
@@ -411,12 +419,13 @@
       var USER_ROLE   = '<?!= userRole ?>';
 
       var NEXT_STATUSES = {
-        'Submitted':       ['Under Review'],
-        'Under Review':    ['Quote Provided', 'In Production'],
-        'Quote Provided':  ['Quote Accepted'],
-        'Quote Accepted':  ['In Production'],
-        'In Production':   ['Ready for Pickup'],
-        'Ready for Pickup':['Picked Up']
+        'Submitted':          ['Under Review', 'In Production'],
+        'Under Review':       ['Quote Provided', 'In Production'],
+        'Quote Provided':     ['Quote Accepted'],
+        'Quote Accepted':     ['Pending Production'],
+        'Pending Production': ['In Production'],
+        'In Production':      ['Ready for Pickup'],
+        'Ready for Pickup':   ['Picked Up']
       };
 
       var PILL_CLASS = {
@@ -455,7 +464,11 @@
 
       function buildActionRow(order) {
         if (USER_ROLE !== 'OFFICER' && USER_ROLE !== 'SPONSOR') { return ''; }
-        var nexts = NEXT_STATUSES[order.status] || [];
+        var nexts = (NEXT_STATUSES[order.status] || []).filter(function(s) {
+          // Cannot move to Picked Up until the order is paid
+          if (s === 'Picked Up' && !order.isPaid) { return false; }
+          return true;
+        });
         if (!nexts.length) { return ''; }
         var opts = nexts.map(function(s) {
           return '<option value="' + esc(s) + '">' + esc(s) + '</option>';
@@ -469,18 +482,17 @@
 
       function buildCard(order) {
         var pill = PILL_CLASS[order.status] || '';
-        var isPickup = order.status === 'Ready for Pickup';
-        var payBadge = '';
-        if (isPickup) {
-          payBadge = order.isPaid
+        var isTerminal = order.status === 'Picked Up' || order.status === 'Cancelled';
+        var payBadge = !isTerminal
+          ? (order.isPaid
             ? '<span class="paid-badge">&#10003; Paid</span>'
-            : '<span class="unpaid-badge">&#9888; Unpaid</span>';
-        }
+            : '<span class="unpaid-badge">&#9888; Unpaid</span>')
+          : '';
         var detail = '';
         if (order.itemSummary)      { detail += '<div class="detail-row"><b>Item:</b> ' + esc(order.itemSummary) + '</div>'; }
         if (order.pickupWindow)     { detail += '<div class="detail-row"><b>Pickup Window:</b> ' + esc(order.pickupWindow) + '</div>'; }
         if (order.duplicateWarning) { detail += '<span class="dup-warning">&#9888; Possible Duplicate</span>'; }
-        if (isPickup && !order.isPaid && (USER_ROLE === 'OFFICER' || USER_ROLE === 'SPONSOR')) {
+        if (!isTerminal && !order.isPaid && (USER_ROLE === 'OFFICER' || USER_ROLE === 'SPONSOR')) {
           detail += '<div class="action-row" style="margin-top:10px;">'
             + '<button class="mark-paid-btn" data-order="' + esc(order.orderNumber) + '">Mark as Paid</button>'
             + '</div>'
@@ -521,6 +533,7 @@
       function renderQueue(listId, cntId, orders) {
         var list = document.getElementById(listId);
         var cnt  = document.getElementById(cntId);
+        if (!list || !cnt) { return; }
         cnt.textContent = orders.length;
         cnt.className = 'count-badge' + (orders.length ? ' has-items' : '');
         if (!orders.length) {
@@ -632,11 +645,12 @@
       }
 
       function renderAll(data) {
-        renderQueue('list-needsReview',     'cnt-needsReview',     data.needsReview     || []);
-        renderQueue('list-underReview',     'cnt-underReview',     data.underReview     || []);
-        renderQueue('list-awaitingResponse','cnt-awaitingResponse', data.awaitingResponse|| []);
-        renderQueue('list-inProduction',    'cnt-inProduction',    data.inProduction     || []);
-        renderQueue('list-readyForPickup',  'cnt-readyForPickup',  data.readyForPickup   || []);
+        renderQueue('list-needsReview',       'cnt-needsReview',       data.needsReview       || []);
+        renderQueue('list-underReview',       'cnt-underReview',       data.underReview       || []);
+        renderQueue('list-awaitingResponse',  'cnt-awaitingResponse',  data.awaitingResponse  || []);
+        renderQueue('list-pendingProduction', 'cnt-pendingProduction', data.pendingProduction  || []);
+        renderQueue('list-inProduction',      'cnt-inProduction',      data.inProduction       || []);
+        renderQueue('list-readyForPickup',    'cnt-readyForPickup',    data.readyForPickup     || []);
         document.getElementById('refresh-status').textContent =
           'Last refreshed: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }

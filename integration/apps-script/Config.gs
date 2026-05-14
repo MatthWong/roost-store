@@ -28,9 +28,10 @@ var AppConfig = Object.freeze({
     underReview: 'Under Review',
     quoteProvided: 'Quote Provided',
     quoteAccepted: 'Quote Accepted',
+    pendingProduction: 'Pending Production',
     inProduction: 'In Production',
-    pending: 'Pending',
-    processing: 'Processing',
+    pending: 'Submitted',      // non-custom orders start as Submitted
+    processing: 'In Production', // non-custom fulfillment maps to In Production
     ready: 'Ready for Pickup',
     pickedUp: 'Picked Up',
     cancelled: 'Cancelled'
