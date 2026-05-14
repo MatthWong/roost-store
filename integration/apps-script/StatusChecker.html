@@ -140,6 +140,21 @@
         result.style.display = 'block';
         result.innerHTML = 'Checking...';
 
+        if (window.google && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(body) {
+              handleStatusPayload(body);
+            })
+            .withFailureHandler(function(error) {
+              var message = (error && error.message)
+                ? error.message
+                : 'Unable to check status right now. Please try again.';
+              renderError(message);
+            })
+            .getOrderStatusForChecker(orderNumber, receiptCode);
+          return;
+        }
+
         var base = window.location.origin + window.location.pathname;
         var url =
           base +
@@ -161,13 +176,7 @@
             });
           })
           .then(function(body) {
-            if (!body || body.statusCode !== 200 || !body.data) {
-              var err = (body && body.data && body.data.error) ? body.data.error : 'Order not found.';
-              renderError(err);
-              return;
-            }
-
-            renderSuccess(body.data);
+            handleStatusPayload(body);
           })
           .catch(function(error) {
             var message = (error && error.message)
@@ -175,6 +184,16 @@
               : 'Unable to check status right now. Please try again.';
             renderError(message);
           });
+      }
+
+      function handleStatusPayload(body) {
+        if (!body || body.statusCode !== 200 || !body.data) {
+          var err = (body && body.data && body.data.error) ? body.data.error : 'Order not found.';
+          renderError(err);
+          return;
+        }
+
+        renderSuccess(body.data);
       }
 
       function renderError(message) {

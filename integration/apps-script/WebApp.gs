@@ -61,3 +61,33 @@ function jsonResponse_(statusCode, payload) {
     .createTextOutput(JSON.stringify({ statusCode: statusCode, data: payload }))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+function getOrderStatusForChecker(orderNumber, receiptCode) {
+  try {
+    var cleanOrderNumber = String(orderNumber || '').trim();
+    var cleanReceiptCode = String(receiptCode || '').trim();
+    if (!cleanOrderNumber || !cleanReceiptCode) {
+      return { statusCode: 400, data: { error: 'orderNumber and receiptCode are required.' } };
+    }
+
+    var status = getCustomerOrderStatus(cleanOrderNumber, cleanReceiptCode);
+    if (!status) {
+      return { statusCode: 404, data: { error: 'No matching order found.' } };
+    }
+
+    return {
+      statusCode: 200,
+      data: {
+        orderNumber: status.orderNumber,
+        status: status.status,
+        pickupWindow: status.pickupWindow,
+        orderType: status.orderType,
+        quoteRequired: status.quoteRequired,
+        lineItems: status.lineItems,
+        updatedAt: status.updatedAt
+      }
+    };
+  } catch (error) {
+    return { statusCode: 500, data: { error: error.message } };
+  }
+}
