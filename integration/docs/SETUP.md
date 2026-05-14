@@ -8,8 +8,9 @@
 - Club operations: Protected Google Sheets tabs with role-based sharing
 
 ## 1) Prepare Google Assets
-1. Create a Google Form for custom orders and link responses to the Orders tab.
+1. Create a Google Form for custom orders and link responses to this spreadsheet.
   - Use exact field text and section logic in integration/docs/GOOGLE_FORMS_SETUP_TEXT.md.
+  - Important: Google Forms usually creates a tab named `Form Responses 1`. Rename that tab to `Orders` so Apps Script writes to the correct sheet.
 2. Create a Google Sheet and add tabs/headers described in ../config/sheet-schema.md.
 3. Fill StoreHours and ClubRoster.
 4. Add Products and PaymentLinks rows.
@@ -28,7 +29,8 @@
 ## 2) Add Apps Script
 1. Open the Google Sheet -> Extensions -> Apps Script.
 2. Create files and paste all scripts from ../apps-script.
-3. In Script Properties, set:
+3. Add HTML file `StatusChecker.html` from integration/apps-script/StatusChecker.html.
+4. In Script Properties, set:
 - INTEGRATION_MODE=PAYMENT_LINKS
 - ALLOWED_SCHOOL_DOMAIN=<your school domain>
 
@@ -52,13 +54,20 @@ Optional now, required later for Square API mode:
 Status endpoint example:
 - <webapp-url>?action=status&orderNumber=RS-20260510-1234&receiptCode=AB12CD34
 
+Checker page URL (recommended for Google Sites embed):
+- <webapp-url>?action=checker
+
+Note on order IDs:
+- New custom orders may start with a temporary ID format (`TMP-...`) before a permanent order number (`RS-...`) is assigned.
+
 Products endpoint example:
 - <webapp-url>?action=products
 
 ## 5) Connect to Google Sites
 1. Embed product pages and Square payment links.
 2. Add a status-check page with order number + receipt code input.
-3. Connect status page to Apps Script endpoint via a simple embedded web component.
+3. Connect status page with Embed URL: <webapp-url>?action=checker.
+  - Do not embed <webapp-url>?action=status directly for end users because it returns JSON.
 4. Build the full Google Site using the page blueprint and publish checklist in integration/docs/GOOGLE_SITES_BUILD.md.
 
 Google Site build guide:

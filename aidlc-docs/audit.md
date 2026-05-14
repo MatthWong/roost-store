@@ -392,3 +392,23 @@ Create the code to switch to use Square API so it is ready when Square Personal 
 - integration/docs/SETUP.md
 
 ---
+
+## Google Sites Embed Clarification Implementation
+**Timestamp**: 2026-05-13T00:10:00Z
+**User Input**: "please update the code and instructions with this information"
+**Context**: User requested implementation of embeddable input-box order status checker for Google Sites.
+**Action**:
+- Added Apps Script HTML page for status input UI (`StatusChecker.html`).
+- Updated web app routing to support `action=checker` and return HTML checker view.
+- Updated setup and build docs with exact embed URL and fallback behavior.
+
+**Outputs Created/Updated**:
+- integration/apps-script/StatusChecker.html
+- integration/apps-script/WebApp.gs
+- integration/docs/GOOGLE_SITES_BUILD.md
+- integration/docs/SETUP.md
+
+**Validation**:
+- Diagnostics checked on modified files.
+
+---

@@ -2,6 +2,12 @@ function doGet(e) {
   try {
     var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'status';
 
+    if (action === 'checker') {
+      return HtmlService
+        .createHtmlOutputFromFile('StatusChecker')
+        .setTitle('Order Status Checker');
+    }
+
     if (action === 'status') {
       var orderNumber = String((e.parameter.orderNumber || '')).trim();
       var receiptCode = String((e.parameter.receiptCode || '')).trim();

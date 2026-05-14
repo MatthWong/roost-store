@@ -88,10 +88,15 @@ Add sections:
 2. Add instruction text:
    - Enter order number and receipt code.
    - If your order is custom, status updates include review and production stages.
-3. Add an Embed component:
-   - Embed URL: Apps Script status endpoint base URL.
-   - If using JSON endpoint only, add button link to a hosted status checker page or Apps Script HTML view.
-4. Add fallback support text with contact email for failed lookups.
+3. Add an Embed component for input boxes:
+   - Use Google Sites: Insert -> Embed -> By URL.
+   - Embed URL: <webapp-url>?action=checker
+   - This renders the Apps Script HTML checker with `orderNumber` and `receiptCode` input fields.
+4. (Fallback only) If you cannot embed the checker page, add a Button linking to <webapp-url>?action=checker.
+5. Add fallback support text with contact email for failed lookups.
+
+Checker note:
+- Do not embed `?action=status` directly for end users; that endpoint returns JSON and is intended for API calls.
 
 ### 8. New Products Page
 1. Add section title: New This Week.
