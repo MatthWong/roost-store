@@ -28,8 +28,9 @@ function onFormSubmit(e) {
   setCellValueIfHeaderExists_(sheet, rowIndex, index.ItemSummary, buildItemSummary_(formData, orderType));
   setCellValueIfHeaderExists_(sheet, rowIndex, index.PickupWindow, pickupWindow);
   setCellValueIfHeaderExists_(sheet, rowIndex, index.DuplicateWarning, duplicateWarning ? 'true' : 'false');
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileURL, getFormValue_(formData, ['Design Image Upload', 'DesignImageUpload']));
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileName, getFileNameFromUrl_(getFormValue_(formData, ['Design Image Upload', 'DesignImageUpload'])));
+  var imageUrl = getDesignImageUploadValue_(formData, orderType);
+  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileURL, imageUrl);
+  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileName, getFileNameFromUrl_(imageUrl));
   setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageUploadedAt, now);
   setCellValueIfHeaderExists_(sheet, rowIndex, index.UpdatedAt, now);
 
@@ -242,18 +243,18 @@ function validateFormSubmission_(formData, orderType) {
   }
 
   if (orderType === AppConfig.customOrder.orderTypes.engraving) {
-    var itemDescription = getFormValue_(formData, ['Item Description', 'Engraving Item Description']);
-    var quantity = Number(getFormValue_(formData, ['Quantity', 'Engraving Quantity']) || 0);
+    var itemDescription = getFormValue_(formData, ['Engraving Item Description', 'Item Description', 'Engraving Description']);
+    var quantity = Number(getFormValue_(formData, ['Engraving Quantity', 'Quantity']) || 0);
     var engravingText = getFormValue_(formData, ['Engraving Text']);
-    var imageUrl = getFormValue_(formData, ['Design Image Upload', 'DesignImageUpload']);
+    var imageUrl = getDesignImageUploadValue_(formData, orderType);
     if (!itemDescription || quantity < 1 || (!engravingText && !imageUrl)) {
       throw new Error('Engraving orders require item description, quantity, and engraving text or image.');
     }
   }
 
   if (orderType === AppConfig.customOrder.orderTypes.customItem) {
-    var customDescription = getFormValue_(formData, ['Custom Item Description', 'Item Description']);
-    var customQty = Number(getFormValue_(formData, ['Quantity', 'Custom Item Quantity']) || 0);
+    var customDescription = getFormValue_(formData, ['Custom Item Description', 'Custom Item Details', 'Item Description', 'Describe the item', 'Describe Your Item', 'Item Details']);
+    var customQty = Number(getFormValue_(formData, ['Custom Item Quantity', 'Quantity', 'Item Quantity', 'Requested Quantity', 'Qty']) || 0);
     if (!customDescription || customQty < 1) {
       throw new Error('Custom item orders require item description and quantity.');
     }
@@ -261,7 +262,13 @@ function validateFormSubmission_(formData, orderType) {
 }
 
 function validateImageRules_(formData) {
-  var imageUrl = getFormValue_(formData, ['Design Image Upload', 'DesignImageUpload']);
+  var imageUrl = getFormValue_(formData, [
+    'Engraving Design Image Upload',
+    'Embroidery Design Image Upload',
+    'Heat Press Design Image Upload',
+    'Design Image Upload',
+    'DesignImageUpload'
+  ]);
   if (!imageUrl) {
     return;
   }
@@ -283,11 +290,11 @@ function getFormValue_(formData, keys) {
 
 function buildItemSummary_(formData, orderType) {
   if (orderType === AppConfig.customOrder.orderTypes.engraving) {
-    return getFormValue_(formData, ['Item Description', 'Engraving Item Description']);
+    return getFormValue_(formData, ['Engraving Item Description', 'Item Description', 'Engraving Description']);
   }
 
   if (orderType === AppConfig.customOrder.orderTypes.customItem) {
-    return getFormValue_(formData, ['Custom Item Description', 'Item Description']);
+    return getFormValue_(formData, ['Custom Item Description', 'Custom Item Details', 'Item Description', 'Describe the item', 'Describe Your Item', 'Item Details']);
   }
 
   var items = extractOrderItems_(formData).map(function(item) {
@@ -301,9 +308,9 @@ function extractOrderItems_(formData) {
   var items = [];
 
   for (var i = 1; i <= 8; i += 1) {
-    var type = getFormValue_(formData, ['Apparel Type ' + i, 'ApparelType' + i]);
-    var size = getFormValue_(formData, ['Size ' + i, 'Apparel Size ' + i, 'ApparelSize' + i]);
-    var qtyRaw = getFormValue_(formData, ['Qty ' + i, 'Quantity ' + i, 'Apparel Qty ' + i]);
+    var type = getFormValue_(formData, ['Apparel Type ' + i, 'ApparelType' + i, 'Embroidery Apparel Type ' + i, 'Heat Press Apparel Type ' + i]);
+    var size = getFormValue_(formData, ['Size ' + i, 'Apparel Size ' + i, 'ApparelSize' + i, 'Embroidery Size ' + i, 'Heat Press Size ' + i]);
+    var qtyRaw = getFormValue_(formData, ['Qty ' + i, 'Quantity ' + i, 'Apparel Qty ' + i, 'Embroidery Qty ' + i, 'Heat Press Qty ' + i]);
     var qty = Number(qtyRaw || 0);
     if (type && size && qty >= 1) {
       items.push({ apparelType: type, apparelSize: size, quantity: qty });
@@ -434,4 +441,18 @@ function assertAuthorizedOpsUser_() {
   if (!found) {
     throw new Error('User is not an active DECA operations member.');
   }
+}
+
+function getDesignImageUploadValue_(formData, orderType) {
+  var keys = ['Design Image Upload', 'DesignImageUpload'];
+
+  if (orderType === AppConfig.customOrder.orderTypes.engraving) {
+    keys.unshift('Engraving Design Image Upload');
+  } else if (orderType === AppConfig.customOrder.orderTypes.embroidery) {
+    keys.unshift('Embroidery Design Image Upload');
+  } else if (orderType === AppConfig.customOrder.orderTypes.heatPress) {
+    keys.unshift('Heat Press Design Image Upload');
+  }
+
+  return getFormValue_(formData, keys);
 }

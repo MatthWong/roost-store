@@ -49,11 +49,11 @@ Section title: Engraving
 Section description: Customer-supplied item. Provide text and/or image.
 
 5. Question type: Paragraph
-- Question text: Item Description
+- Question text: Engraving Item Description
 - Required: Yes
 
 6. Question type: Short answer
-- Question text: Quantity
+- Question text: Engraving Quantity
 - Required: Yes
 - Validation: Number greater than or equal to 1
 - Error text: Quantity must be at least 1.
@@ -63,19 +63,19 @@ Section description: Customer-supplied item. Provide text and/or image.
 - Required: No
 
 8. Question type: File upload
-- Question text: Design Image Upload
+- Question text: Engraving Design Image Upload
 - Required: No
 - Allow file types: PNG, JPG, SVG
 - Maximum number of files: 1
 - Maximum file size: 5 MB
 
 9. Question type: Checkbox
-- Question text: Placement Choice
+- Question text: Engraving Placement Choice
 - Option text: I confirm placement details are correct.
 - Required: Yes
 
 10. Question type: Checkbox
-- Question text: Review Confirmation
+- Question text: Engraving Review Confirmation
 - Option text: I understand all engraving orders are reviewed before production.
 - Required: Yes
 
@@ -86,7 +86,7 @@ Section title: Embroidery
 Section description: Add one or more apparel type-size-quantity lines. Upload one design image.
 
 11. Question type: Dropdown
-- Question text: Apparel Type 1
+- Question text: Embroidery Apparel Type 1
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -95,7 +95,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 12. Question type: Dropdown
-- Question text: Size 1
+- Question text: Embroidery Size 1
 - Options:
   - XS
   - S
@@ -109,13 +109,13 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 13. Question type: Short answer
-- Question text: Qty 1
+- Question text: Embroidery Qty 1
 - Required: Yes
 - Validation: Number greater than or equal to 1
 - Error text: Quantity must be at least 1.
 
 14. Question type: Dropdown
-- Question text: Apparel Type 2
+- Question text: Embroidery Apparel Type 2
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -124,7 +124,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 15. Question type: Dropdown
-- Question text: Size 2
+- Question text: Embroidery Size 2
 - Options:
   - XS
   - S
@@ -138,12 +138,12 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 16. Question type: Short answer
-- Question text: Qty 2
+- Question text: Embroidery Qty 2
 - Required: No
 - Validation: Number greater than or equal to 1
 
 17. Question type: Dropdown
-- Question text: Apparel Type 3
+- Question text: Embroidery Apparel Type 3
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -152,7 +152,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 18. Question type: Dropdown
-- Question text: Size 3
+- Question text: Embroidery Size 3
 - Options:
   - XS
   - S
@@ -166,19 +166,19 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 19. Question type: Short answer
-- Question text: Qty 3
+- Question text: Embroidery Qty 3
 - Required: No
 - Validation: Number greater than or equal to 1
 
 20. Question type: File upload
-- Question text: Design Image Upload
+- Question text: Embroidery Design Image Upload
 - Required: Yes
 - Allow file types: PNG, JPG, SVG
 - Maximum number of files: 1
 - Maximum file size: 5 MB
 
 21. Question type: Multiple choice
-- Question text: Placement Choice
+- Question text: Embroidery Placement Choice
 - Options:
   - Front Center
   - Left Chest
@@ -188,7 +188,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 22. Question type: Checkbox
-- Question text: Review Confirmation
+- Question text: Embroidery Review Confirmation
 - Option text: I confirmed image prep and placement details.
 - Required: Yes
 
@@ -199,7 +199,7 @@ Section title: Heat Press
 Section description: Add one or more apparel type-size-quantity lines. Upload one design image.
 
 23. Question type: Dropdown
-- Question text: Apparel Type 1
+- Question text: Heat Press Apparel Type 1
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -208,7 +208,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 24. Question type: Dropdown
-- Question text: Size 1
+- Question text: Heat Press Size 1
 - Options:
   - XS
   - S
@@ -222,12 +222,12 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 25. Question type: Short answer
-- Question text: Qty 1
+- Question text: Heat Press Qty 1
 - Required: Yes
 - Validation: Number greater than or equal to 1
 
 26. Question type: Dropdown
-- Question text: Apparel Type 2
+- Question text: Heat Press Apparel Type 2
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -236,7 +236,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 27. Question type: Dropdown
-- Question text: Size 2
+- Question text: Heat Press Size 2
 - Options:
   - XS
   - S
@@ -250,12 +250,12 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 28. Question type: Short answer
-- Question text: Qty 2
+- Question text: Heat Press Qty 2
 - Required: No
 - Validation: Number greater than or equal to 1
 
 29. Question type: Dropdown
-- Question text: Apparel Type 3
+- Question text: Heat Press Apparel Type 3
 - Options:
   - Short-sleeve t-shirt
   - Long-sleeve t-shirt
@@ -264,7 +264,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 30. Question type: Dropdown
-- Question text: Size 3
+- Question text: Heat Press Size 3
 - Options:
   - XS
   - S
@@ -278,19 +278,19 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: No
 
 31. Question type: Short answer
-- Question text: Qty 3
+- Question text: Heat Press Qty 3
 - Required: No
 - Validation: Number greater than or equal to 1
 
 32. Question type: File upload
-- Question text: Design Image Upload
+- Question text: Heat Press Design Image Upload
 - Required: Yes
 - Allow file types: PNG, JPG, SVG
 - Maximum number of files: 1
 - Maximum file size: 5 MB
 
 33. Question type: Multiple choice
-- Question text: Placement Choice
+- Question text: Heat Press Placement Choice
 - Options:
   - Front Center
   - Left Chest
@@ -300,7 +300,7 @@ Section description: Add one or more apparel type-size-quantity lines. Upload on
 - Required: Yes
 
 34. Question type: Checkbox
-- Question text: Review Confirmation
+- Question text: Heat Press Review Confirmation
 - Option text: I confirmed image prep and placement details.
 - Required: Yes
 
@@ -315,7 +315,7 @@ Section description: Custom item orders are quote-required.
 - Required: Yes
 
 36. Question type: Short answer
-- Question text: Quantity
+- Question text: Custom Item Quantity
 - Required: Yes
 - Validation: Number greater than or equal to 1
 
@@ -328,6 +328,11 @@ Section description: Custom item orders are quote-required.
 38. Question type: Paragraph
 - Question text: Additional Notes
 - Required: No
+
+Custom item note:
+- Keep the question text exactly as `Custom Item Description` and `Custom Item Quantity` so the script maps them cleanly.
+- Unique labels prevent Google Forms from generating duplicate response columns when sections reuse the same kind of field.
+- If you rename them, update the aliases in `OrderWorkflow.gs` so they stay unique across the whole form.
 
 After section: Go to Section 6 - Final Confirmation
 

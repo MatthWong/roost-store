@@ -36,11 +36,33 @@
 - Order Type
 - Full Name / Customer Name
 - School Email / Customer Email
-- Item Description / Custom Item Description
-- Quantity / Qty 1..Qty 8
-- Apparel Type 1..8
-- Size 1..8
-- Design Image Upload
+- Engraving Item Description
+- Engraving Quantity
+- Engraving Text
+- Engraving Design Image Upload
+- Engraving Placement Choice
+- Engraving Review Confirmation
+- Embroidery Apparel Type 1..3
+- Embroidery Size 1..3
+- Embroidery Qty 1..3
+- Embroidery Design Image Upload
+- Embroidery Placement Choice
+- Embroidery Review Confirmation
+- Heat Press Apparel Type 1..3
+- Heat Press Size 1..3
+- Heat Press Qty 1..3
+- Heat Press Design Image Upload
+- Heat Press Placement Choice
+- Heat Press Review Confirmation
+- Custom Item Description
+- Custom Item Quantity
+- Quote Request
+- Additional Notes
+
+Important:
+- Use unique section-prefixed question titles so Google Forms does not generate duplicate response columns when the same kind of field appears in multiple sections.
+- If you already linked a form with repeated titles, rename the questions first and then relink or recreate the response sheet so the headers regenerate cleanly.
+- The script accepts the final unique labels in [OrderWorkflow.gs](../apps-script/OrderWorkflow.gs), so the sheet and form should stay in lockstep.
 
 ## 2) Add Apps Script
 1. Open the Google Sheet -> Extensions -> Apps Script.
