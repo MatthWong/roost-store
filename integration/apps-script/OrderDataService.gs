@@ -31,7 +31,7 @@ function getActiveProducts() {
     });
 }
 
-var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'Quote Accepted', 'Pending Production', 'In Production', 'Ready for Pickup'];
+var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'Quote Accepted', 'In Production', 'Ready for Pickup'];
 
 function getDashboardOrders() {
   var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
@@ -73,8 +73,7 @@ function getDashboardOrders() {
     if (status === 'Submitted')              { queues.needsReview.push(order); }
     else if (status === 'Under Review')      { queues.underReview.push(order); }
     else if (status === 'Quote Provided')    { queues.awaitingResponse.push(order); }
-    else if (status === 'Quote Accepted' ||
-             status === 'Pending Production'){ queues.pendingProduction.push(order); }
+    else if (status === 'Quote Accepted')    { queues.pendingProduction.push(order); }
     else if (status === 'In Production')     { queues.inProduction.push(order); }
     else if (status === 'Ready for Pickup')  { queues.readyForPickup.push(order); }
   }

@@ -433,8 +433,7 @@ function isAllowedStatusTransition_(fromStatus, toStatus) {
     AppConfig.orderStatus.inProduction
   ];
   transitions[AppConfig.orderStatus.quoteProvided] = [AppConfig.orderStatus.quoteAccepted];
-  transitions[AppConfig.orderStatus.quoteAccepted] = [AppConfig.orderStatus.pendingProduction];
-  transitions[AppConfig.orderStatus.pendingProduction] = [AppConfig.orderStatus.inProduction];
+  transitions[AppConfig.orderStatus.quoteAccepted] = [AppConfig.orderStatus.inProduction];
   transitions[AppConfig.orderStatus.inProduction] = [AppConfig.orderStatus.ready];
   transitions[AppConfig.orderStatus.ready] = [AppConfig.orderStatus.pickedUp];
 
