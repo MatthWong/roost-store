@@ -504,14 +504,18 @@ function sendSubmissionConfirmationEmail_(formData, orderData) {
   lines.push('If you need help, reply to this email or contact the store team.');
 
   try {
-    MailApp.sendEmail({
+    var mailOptions = {
       to: recipients.to,
-      cc: recipients.cc,
       subject: subject,
       body: lines.join('\n')
-    });
+    };
+    if (recipients.cc) {
+      mailOptions.cc = recipients.cc;
+    }
+    MailApp.sendEmail(mailOptions);
   } catch (error) {
     Logger.log('Submission email failed for ' + recipients.to + ': ' + error.message);
+    throw error;
   }
 }
 
