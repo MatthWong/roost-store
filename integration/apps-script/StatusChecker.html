@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order Status Checker</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --card: #f7f7fb;
+        --text: #1f1f24;
+        --muted: #666a73;
+        --primary: #5b2d90;
+        --primary-hover: #4a2376;
+        --border: #d6d9e0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+
+      .wrap {
+        max-width: 560px;
+        margin: 0 auto;
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 24px;
+      }
+
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--card);
+        padding: 16px;
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: 700;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      button {
+        margin-top: 14px;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: var(--primary-hover);
+      }
+
+      #result {
+        margin-top: 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 12px;
+        display: none;
+      }
+
+      .error {
+        color: #b00020;
+      }
+
+      .debug-info {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: #f0f0f5;
+        border-radius: 6px;
+        font-size: 11px;
+        color: var(--muted);
+        font-family: monospace;
+        word-break: break-all;
+      }
+
+      .debug-info b {
+        color: var(--text);
+      }
+
+      .ok {
+        color: #1f1f24;
+      }
+
+      .row {
+        margin: 8px 0;
+      }
+
+      .row b {
+        display: inline-block;
+        min-width: 130px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h2>Check Order Status</h2>
+      <p>Enter your order number and receipt code.</p>
+
+      <div class="card">
+        <label for="orderNumber">Order Number</label>
+        <input id="orderNumber" placeholder="RS-20260510-1234" value="<?= initialOrderNumber ?>" />
+
+        <label for="receiptCode">Receipt Code</label>
+        <input id="receiptCode" placeholder="AB12CD34" value="<?= initialReceiptCode ?>" />
+
+        <button id="checkButton" type="button">Check Status</button>
+
+        <div id="result"></div>
+      </div>
+
+      <script id="initialPayload" type="application/json"><?!= initialPayloadJson ?></script>
+      <script>var WEB_APP_URL = '<?!= webAppUrl ?>';</script>
+    </div>
+
+    <script>
+      var initialPayloadText = document.getElementById('initialPayload').textContent || '';
+      var INITIAL_PAYLOAD = null;
+      if (initialPayloadText && initialPayloadText !== 'null') {
+        try {
+          INITIAL_PAYLOAD = JSON.parse(initialPayloadText);
+        } catch (error) {
+          INITIAL_PAYLOAD = null;
+        }
+      }
+      var button = document.getElementById('checkButton');
+      button.addEventListener('click', checkStatus);
+
+      if (INITIAL_PAYLOAD) {
+        handleStatusPayload(INITIAL_PAYLOAD);
+      }
+
+      function checkStatus() {
+        var orderNumber = normalizeOrderNumber(document.getElementById('orderNumber').value);
+        var receiptCode = normalizeReceiptCode(document.getElementById('receiptCode').value);
+        var result = document.getElementById('result');
+
+        if (!orderNumber || !receiptCode) {
+          renderError('Please enter both order number and receipt code.');
+          return;
+        }
+
+        result.style.display = 'block';
+        result.innerHTML = 'Checking\u2026';
+
+        var url = WEB_APP_URL +
+          '?action=status&orderNumber=' +
+          encodeURIComponent(orderNumber) +
+          '&receiptCode=' +
+          encodeURIComponent(receiptCode);
+
+        fetch(url)
+          .then(function(res) { return res.json(); })
+          .then(function(body) {
+            handleStatusPayload(body, orderNumber, receiptCode);
+          })
+          .catch(function(err) {
+            renderError('Unable to reach the server. Please try again.', null, orderNumber, receiptCode);
+          });
+      }
+
+      function handleStatusPayload(body, sentOrder, sentReceipt) {
+        if (!body || body.statusCode !== 200 || !body.data) {
+          var err = (body && body.data && body.data.error) ? body.data.error : 'Order not found.';
+          var statusCode = body ? body.statusCode : null;
+          renderError(err, statusCode, sentOrder, sentReceipt);
+          return;
+        }
+
+        renderSuccess(body.data);
+      }
+
+      function renderError(message, statusCode, sentOrder, sentReceipt) {
+        var result = document.getElementById('result');
+        var debugHtml = '';
+        if (sentOrder || sentReceipt) {
+          debugHtml = '<div class="debug-info">' +
+            '<b>Looked up:</b> ' + escapeHtml(sentOrder || '(none)') + ' / ' + escapeHtml(sentReceipt || '(none)') +
+            (statusCode != null ? ' &nbsp;·&nbsp; <b>HTTP:</b> ' + escapeHtml(String(statusCode)) : '') +
+            '</div>';
+        }
+        result.style.display = 'block';
+        result.innerHTML = '<div class="error">' + escapeHtml(message) + '</div>' + debugHtml;
+      }
+
+      function renderSuccess(data) {
+        var result = document.getElementById('result');
+        var html = '';
+        html += '<div class="row ok"><b>Status:</b> ' + escapeHtml(data.status || 'N/A') + '</div>';
+        html += '<div class="row ok"><b>Pickup Window:</b> ' + escapeHtml(data.pickupWindow || 'TBD') + '</div>';
+        html += '<div class="row ok"><b>Order Type:</b> ' + escapeHtml(data.orderType || 'N/A') + '</div>';
+        if (data.orderNumber) {
+          html += '<div class="row ok"><b>Order Number:</b> ' + escapeHtml(data.orderNumber) + '</div>';
+        }
+        result.style.display = 'block';
+        result.innerHTML = html;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function normalizeToken(value) {
+        return String(value || '')
+          .replace(/[\u200B-\u200D\uFEFF]/g, '')
+          .trim()
+          .toUpperCase();
+      }
+
+      function normalizeOrderNumber(value) {
+        return normalizeToken(value).replace(/[^A-Z0-9-]/g, '');
+      }
+
+      function normalizeReceiptCode(value) {
+        return normalizeToken(value).replace(/[^A-Z0-9]/g, '');
+      }
+    </script>
+  </body>
+</html>

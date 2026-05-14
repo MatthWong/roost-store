@@ -88,10 +88,15 @@ Add sections:
 2. Add instruction text:
    - Enter order number and receipt code.
    - If your order is custom, status updates include review and production stages.
-3. Add an Embed component:
-   - Embed URL: Apps Script status endpoint base URL.
-   - If using JSON endpoint only, add button link to a hosted status checker page or Apps Script HTML view.
-4. Add fallback support text with contact email for failed lookups.
+3. Add an Embed component for input boxes:
+   - Use Google Sites: Insert -> Embed -> By URL.
+   - Embed URL: <webapp-url>?action=checker
+   - This renders the Apps Script HTML checker with `orderNumber` and `receiptCode` input fields.
+4. (Fallback only) If you cannot embed the checker page, add a Button linking to <webapp-url>?action=checker.
+5. Add fallback support text with contact email for failed lookups.
+
+Checker note:
+- Do not embed `?action=status` directly for end users; that endpoint returns JSON and is intended for API calls.
 
 ### 8. New Products Page
 1. Add section title: New This Week.
@@ -104,10 +109,36 @@ Add sections:
 3. Add pickup location details.
 4. Add DECA sponsor contact details.
 
+### 10. Ops Dashboard Page (Members Only)
+1. Create a new page: **Operations** (or **Team Dashboard**).
+2. Hide the page from the site navigation so casual visitors don't see it:
+   - In the Pages panel (right side), hover the page name → click the three-dot menu (⋮) → **Hide from navigation**.
+   - The page still exists at its URL but won't appear in the nav bar.
+3. **Note on access control**: New Google Sites does not support per-page access restrictions. Access control is enforced by the Apps Script web app itself — anyone who navigates to the page will see an error from the dashboard embed if they are not in the ClubRoster sheet with `IsActive = true`. No order data is ever exposed to unauthorized users.
+   - If your school uses Google Workspace and you want to fully hide the page, publish the *entire site* to "Only people in [your domain]" (Publish settings → Who can view → Anyone in your organization). This restricts the whole site to signed-in school accounts.
+4. Add section title: Order Queue.
+5. Add instruction text:
+   - Officers and sponsors can advance order status from this dashboard.
+   - Members can view orders but cannot change status.
+   - The dashboard auto-refreshes every 60 seconds.
+5. Add an Embed component or Button link:
+   - **Recommended**: Use a **Button** component → link to `<webapp-url>?action=dashboard` with "Open in new tab" behavior. This is the most reliable method because the dashboard requires Google identity, which only works in a direct browser tab (not an iframe — modern browsers block third-party cookies in iframes, which prevents Apps Script from identifying the user).
+   - **Embed fallback**: If you do embed via Insert → Embed → By URL, the page will display an "Open Dashboard in New Tab" button automatically when identity cannot be determined inside the iframe.
+7. Add a note linking to the Google Sheet for detailed order data.
+
+Dashboard queue reference:
+| Queue | Order Status |
+|---|---|
+| Needs Review | Submitted |
+| Awaiting Response | Quote Provided |
+| In Production | In Production |
+| Ready for Pickup | Ready for Pickup |
+
 ## Integration Checklist
 - Every product card has a working Square payment link.
 - Custom Orders button opens the Google Form.
 - Order Status page links to the status checker endpoint/page.
+- Ops Dashboard page is restricted to DECA members and embeds <webapp-url>?action=dashboard.
 - Navigation works on desktop and mobile.
 - Theme colors are consistently purple and gold.
 
@@ -123,3 +154,6 @@ Add sections:
 3. Confirm order ID and receipt code are generated.
 4. Confirm status lookup is accessible from Order Status page.
 5. Confirm at least one food and one merchandise Square checkout flow opens correctly.
+6. Confirm the Ops Dashboard page is visible to logged-in DECA members and restricted from public access.
+7. Confirm OFFICER/SPONSOR can advance an order status from the dashboard.
+8. Confirm MEMBER sees orders but no Update button.

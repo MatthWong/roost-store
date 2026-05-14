@@ -6,6 +6,7 @@ var IntegrationMode = Object.freeze({
 var AppConfig = Object.freeze({
   defaultMode: IntegrationMode.PAYMENT_LINKS,
   modeProperty: 'INTEGRATION_MODE',
+  statusCheckerUrlProperty: 'STATUS_CHECKER_URL',
   allowedDomainProperty: 'ALLOWED_SCHOOL_DOMAIN',
   square: {
     tokenProperty: 'SQUARE_PERSONAL_ACCESS_TOKEN',

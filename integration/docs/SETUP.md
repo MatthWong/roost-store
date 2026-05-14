@@ -8,29 +8,72 @@
 - Club operations: Protected Google Sheets tabs with role-based sharing
 
 ## 1) Prepare Google Assets
-1. Create a Google Form for custom orders and link responses to the Orders tab.
+1. Create a Google Form for custom orders and link responses to this spreadsheet.
   - Use exact field text and section logic in integration/docs/GOOGLE_FORMS_SETUP_TEXT.md.
-2. Create a Google Sheet and add tabs/headers described in ../config/sheet-schema.md.
+  - Important: Google Forms usually creates a tab named `Form Responses 1`.
+  - If an `Orders` tab already exists, delete or rename the old `Orders` tab first, then rename `Form Responses 1` to `Orders`.
+2. Create remaining tabs/headers described in ../config/sheet-schema.md (except `Orders`, which is now the form response tab).
 3. Fill StoreHours and ClubRoster.
 4. Add Products and PaymentLinks rows.
 5. Ensure OrderItems tab exists with headers:
 - OrderItemID, OrderNumber, ApparelType, ApparelSize, Quantity, CreatedAt
-6. Ensure custom form question titles map to these expected fields where possible:
+6. In the `Orders` tab, append these operational headers (to the right of form response columns if needed):
+- OrderNumber
+- TemporaryOrderID
+- PermanentOrderNumber
+- ReceiptCode
+- Status
+- QuoteRequired
+- ItemSummary
+- PickupWindow
+- DuplicateWarning
+- ImageFileURL
+- ImageFileName
+- ImageUploadedAt
+- PaymentLink
+- UpdatedAt
+7. Ensure custom form question titles map to these expected fields where possible:
 - Order Type
 - Full Name / Customer Name
 - School Email / Customer Email
-- Item Description / Custom Item Description
-- Quantity / Qty 1..Qty 8
-- Apparel Type 1..8
-- Size 1..8
-- Design Image Upload
+- Engraving Item Description
+- Engraving Quantity
+- Engraving Text
+- Engraving Design Image Upload
+- Engraving Placement Choice
+- Engraving Review Confirmation
+- Embroidery Apparel Type 1..3
+- Embroidery Size 1..3
+- Embroidery Qty 1..3
+- Embroidery Design Image Upload
+- Embroidery Placement Choice
+- Embroidery Review Confirmation
+- Heat Press Apparel Type 1..3
+- Heat Press Size 1..3
+- Heat Press Qty 1..3
+- Heat Press Design Image Upload
+- Heat Press Placement Choice
+- Heat Press Review Confirmation
+- Custom Item Description
+- Custom Item Quantity
+- Quote Request
+- Additional Notes
+
+Important:
+- Use unique section-prefixed question titles so Google Forms does not generate duplicate response columns when the same kind of field appears in multiple sections.
+- If you already linked a form with repeated titles, rename the questions first and then relink or recreate the response sheet so the headers regenerate cleanly.
+- The script accepts the final unique labels in [OrderWorkflow.gs](../apps-script/OrderWorkflow.gs), so the sheet and form should stay in lockstep.
 
 ## 2) Add Apps Script
 1. Open the Google Sheet -> Extensions -> Apps Script.
 2. Create files and paste all scripts from ../apps-script.
-3. In Script Properties, set:
+3. Add HTML files from integration/apps-script/:
+   - `StatusChecker.html`
+   - `Dashboard.html`
+4. In Script Properties, set:
 - INTEGRATION_MODE=PAYMENT_LINKS
 - ALLOWED_SCHOOL_DOMAIN=<your school domain>
+- STATUS_CHECKER_URL=<webapp-url>?action=checker
 
 Optional now, required later for Square API mode:
 - SQUARE_PERSONAL_ACCESS_TOKEN=<token>
@@ -52,13 +95,49 @@ Optional now, required later for Square API mode:
 Status endpoint example:
 - <webapp-url>?action=status&orderNumber=RS-20260510-1234&receiptCode=AB12CD34
 
+Checker page URL (recommended for Google Sites embed):
+- <webapp-url>?action=checker
+
+Submission email behavior:
+- On each successful form submission, Apps Script sends a confirmation email to the submitter.
+- The email includes Order Number, Receipt Code, current status, and `STATUS_CHECKER_URL` (if configured).
+- Primary recipient is `School Email`.
+- If `School Email` is blank, Apps Script falls back to the logged-in respondent email (`Email Address` from Google Forms, if available).
+- If `School Email` and logged-in respondent email differ, Apps Script sends to `School Email` and CCs the logged-in respondent email.
+
+Status checker behavior:
+- Customers can check status using either a temporary (`TMP-...`) or permanent (`RS-...`) order number with the matching receipt code.
+- After Apps Script changes, redeploy the web app so the embedded checker uses the latest status lookup logic.
+
+Note on order IDs:
+- New custom orders may start with a temporary ID format (`TMP-...`) before a permanent order number (`RS-...`) is assigned.
+
 Products endpoint example:
 - <webapp-url>?action=products
+
+Ops dashboard URL (embed in members-only Google Sites page):
+- <webapp-url>?action=dashboard
+
+Ops dashboard data endpoint (JSON, used by dashboard auto-refresh):
+- <webapp-url>?action=dashboard-data
+
+Ops status update endpoint (OFFICER/SPONSOR only):
+- <webapp-url>?action=update-status&orderNumber=TMP-20260513-12345&newStatus=Under+Review
+
+Ops dashboard role behavior:
+- MEMBER: can view all queues; no status update controls shown.
+- OFFICER / SPONSOR: can view all queues and advance order status via dropdown.
+- Role is read from the `Role` column in the ClubRoster sheet (MEMBER, OFFICER, SPONSOR).
+- `updateOrderStatus` is also gated server-side to OFFICER/SPONSOR — MEMBERs cannot call the update endpoint directly.
 
 ## 5) Connect to Google Sites
 1. Embed product pages and Square payment links.
 2. Add a status-check page with order number + receipt code input.
-3. Connect status page to Apps Script endpoint via a simple embedded web component.
+3. Connect status page with Embed URL: <webapp-url>?action=checker.
+  - Do not embed <webapp-url>?action=status directly for end users because it returns JSON.
+4. Add an ops dashboard page restricted to DECA members (see GOOGLE_SITES_BUILD.md Section 10).
+  - Embed URL: <webapp-url>?action=dashboard
+  - Restrict page access to DECA members/officers/sponsors only via Google Sites page permissions.
 4. Build the full Google Site using the page blueprint and publish checklist in integration/docs/GOOGLE_SITES_BUILD.md.
 
 Google Site build guide:

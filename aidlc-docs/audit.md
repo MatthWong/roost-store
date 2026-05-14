@@ -5,6 +5,22 @@
 
 ---
 
+## Ops Dashboard — Code Generation Complete
+**Timestamp**: 2026-05-13T00:00:00Z
+**User Input**: "A" (approved code generation plan)
+**AI Response**: Generated all 4 files (OrderWorkflow.gs, OrderDataService.gs, WebApp.gs, Dashboard.html)
+**Context**: CONSTRUCTION - Code Generation complete for ops-dashboard unit
+
+---
+
+## New Feature Request - Ops Order Dashboard
+**Timestamp**: 2026-05-13T00:00:00Z
+**User Input**: "using AIDLC, create a dashboard for orders that need to be reviewed, waiting for a response, or need to be picked up"
+**Context**: Brownfield - adding ops dashboard feature to existing Roost Store Apps Script / Google Sites project
+**Action**: Initiating new AIDLC workflow for dashboard feature. Workspace Detection → Requirements Analysis.
+
+---
+
 ## Initial Request
 **Timestamp**: 2026-05-10T00:00:00Z
 **User Input**: "using AIDLC create a google site for a school store that sells food, school branded merchandise such as water bottles, earbuds, blankets and t-shirts and custom orders for embroidery, engraving and clothing printing that uses a heat press. The food items can be purchased online, then picked up in store. The school store is operated by the Distributed Education Clubs of America (DECA) chapter at the school. Inventory and purchases are managed through Square. It should be easy to add new products and services. The website should be easy to navigate and have school colors of purple and gold. The primary consumers are students and teachers. Create a way to managed orders and track the status so the purchaser knows when it will be ready. Create a way for students in the club to view the orders that have been placed. It should be restricted to current students of the club and the list can be managed by the school sponsor (teacher). The store regularly adds new products to the store, make an easy way to highlight the new products. Create a dashboard for analytics to track webpage usage by customers."
@@ -390,5 +406,25 @@ Create the code to switch to use Square API so it is ready when Square Personal 
 **Outputs Created/Updated**:
 - integration/docs/GOOGLE_FORMS_SETUP_TEXT.md
 - integration/docs/SETUP.md
+
+---
+
+## Google Sites Embed Clarification Implementation
+**Timestamp**: 2026-05-13T00:10:00Z
+**User Input**: "please update the code and instructions with this information"
+**Context**: User requested implementation of embeddable input-box order status checker for Google Sites.
+**Action**:
+- Added Apps Script HTML page for status input UI (`StatusChecker.html`).
+- Updated web app routing to support `action=checker` and return HTML checker view.
+- Updated setup and build docs with exact embed URL and fallback behavior.
+
+**Outputs Created/Updated**:
+- integration/apps-script/StatusChecker.html
+- integration/apps-script/WebApp.gs
+- integration/docs/GOOGLE_SITES_BUILD.md
+- integration/docs/SETUP.md
+
+**Validation**:
+- Diagnostics checked on modified files.
 
 ---
