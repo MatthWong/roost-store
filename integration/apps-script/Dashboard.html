@@ -281,6 +281,14 @@
         <div class="queue-body" id="list-needsReview"></div>
       </div>
 
+      <div class="queue" id="q-underReview">
+        <div class="queue-header" style="border-left: 3px solid var(--warn);">
+          <h2>&#128269; Under Review</h2>
+          <span class="count-badge" id="cnt-underReview">0</span>
+        </div>
+        <div class="queue-body" id="list-underReview"></div>
+      </div>
+
       <div class="queue" id="q-awaitingResponse">
         <div class="queue-header" style="border-left: 3px solid var(--badge-y);">
           <h2>&#128993; Awaiting Response</h2>
@@ -419,33 +427,25 @@
             if (!newStatus) { return; }
             btn.disabled = true;
             btn.textContent = 'Saving…';
-            var url = WEB_APP_URL + '?action=update-status' +
-              '&orderNumber=' + encodeURIComponent(orderNumber) +
-              '&newStatus='   + encodeURIComponent(newStatus);
-            fetch(url)
-              .then(function(r) { return r.json(); })
-              .then(function(body) {
-                if (body && body.statusCode === 200) {
-                  showToast('Updated ' + orderNumber + ' → ' + newStatus);
-                  refreshData();
-                } else {
-                  var err = (body && body.data && body.data.error) ? body.data.error : 'Update failed.';
-                  if (msgEl) { msgEl.textContent = err; msgEl.className = 'action-msg err'; }
-                  btn.disabled = false;
-                  btn.textContent = 'Update';
-                }
+            google.script.run
+              .withSuccessHandler(function() {
+                showToast('Updated ' + orderNumber + ' → ' + newStatus);
+                refreshData();
               })
-              .catch(function() {
-                if (msgEl) { msgEl.textContent = 'Network error. Try again.'; msgEl.className = 'action-msg err'; }
+              .withFailureHandler(function(err) {
+                var msg = (err && err.message) ? err.message : 'Update failed.';
+                if (msgEl) { msgEl.textContent = msg; msgEl.className = 'action-msg err'; }
                 btn.disabled = false;
                 btn.textContent = 'Update';
-              });
+              })
+              .updateOrderStatus(orderNumber, newStatus);
           });
         });
       }
 
       function renderAll(data) {
         renderQueue('list-needsReview',     'cnt-needsReview',     data.needsReview     || []);
+        renderQueue('list-underReview',     'cnt-underReview',     data.underReview     || []);
         renderQueue('list-awaitingResponse','cnt-awaitingResponse', data.awaitingResponse|| []);
         renderQueue('list-inProduction',    'cnt-inProduction',    data.inProduction     || []);
         renderQueue('list-readyForPickup',  'cnt-readyForPickup',  data.readyForPickup   || []);
@@ -454,17 +454,17 @@
       }
 
       function refreshData() {
-        fetch(WEB_APP_URL + '?action=dashboard-data')
-          .then(function(r) { return r.json(); })
-          .then(function(body) {
-            if (body && body.statusCode === 200 && body.data) {
-              USER_ROLE = body.data.userRole || USER_ROLE;
-              renderAll(body.data.orders || {});
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result) {
+              USER_ROLE = result.userRole || USER_ROLE;
+              renderAll(result.orders || {});
             }
           })
-          .catch(function() {
+          .withFailureHandler(function() {
             document.getElementById('refresh-status').textContent = 'Refresh failed — retrying…';
-          });
+          })
+          .getDashboardDataForUI();
       }
 
       function showToast(msg) {

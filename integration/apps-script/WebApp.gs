@@ -158,6 +158,15 @@ function jsonResponse_(statusCode, payload) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// Called via google.script.run from Dashboard.html — bypasses CORS.
+function getDashboardDataForUI() {
+  assertAuthorizedOpsUser_();
+  return {
+    orders: getDashboardOrders(),
+    userRole: getUserRole_() || 'MEMBER'
+  };
+}
+
 function getOrderStatusForChecker(orderNumber, receiptCode) {
   try {
     var cleanOrderNumber = String(orderNumber || '').trim();
