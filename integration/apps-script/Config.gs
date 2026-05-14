@@ -11,7 +11,9 @@ var AppConfig = Object.freeze({
   square: {
     tokenProperty: 'SQUARE_PERSONAL_ACCESS_TOKEN',
     locationProperty: 'SQUARE_LOCATION_ID',
-    baseUrl: 'https://connect.squareup.com/v2'
+    environmentProperty: 'SQUARE_ENVIRONMENT',
+    baseUrl: 'https://connect.squareup.com/v2',
+    sandboxBaseUrl: 'https://connect.squareupsandbox.com/v2'
   },
   sheets: {
     orders: 'Orders',
@@ -30,7 +32,8 @@ var AppConfig = Object.freeze({
     pending: 'Pending',
     processing: 'Processing',
     ready: 'Ready for Pickup',
-    pickedUp: 'Picked Up'
+    pickedUp: 'Picked Up',
+    cancelled: 'Cancelled'
   },
   customOrder: {
     orderTypes: {
@@ -69,6 +72,14 @@ function getSquareAccessToken_() {
 
 function getSquareLocationId_() {
   return PropertiesService.getScriptProperties().getProperty(AppConfig.square.locationProperty);
+}
+
+function getSquareBaseUrl_() {
+  var env = PropertiesService.getScriptProperties().getProperty(AppConfig.square.environmentProperty) || '';
+  if (env.toLowerCase() === 'production') {
+    return AppConfig.square.baseUrl;
+  }
+  return AppConfig.square.sandboxBaseUrl;
 }
 
 function isSquareApiReady() {

@@ -4,7 +4,7 @@
 - **Project Name**: Roost Store - DECA School Store
 - **Project Type**: Greenfield
 - **Start Date**: 2026-05-10T00:00:00Z
-- **Current Stage**: CONSTRUCTION - Code Generation (Shopping Cart — COMPLETE, awaiting review)
+- **Current Stage**: CONSTRUCTION - Code Generation (Square Dynamic Payment — COMPLETE, awaiting review)
 
 ## Workspace State
 - **Existing Code**: No

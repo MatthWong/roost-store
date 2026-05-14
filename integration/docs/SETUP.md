@@ -31,6 +31,7 @@
 - ImageFileName
 - ImageUploadedAt
 - PaymentLink
+- IsPaid
 - UpdatedAt
 7. Ensure custom form question titles map to these expected fields where possible:
 - Order Type
@@ -79,6 +80,7 @@ Important:
 Optional now, required later for Square API mode:
 - SQUARE_PERSONAL_ACCESS_TOKEN=<token>
 - SQUARE_LOCATION_ID=<location-id>
+- SQUARE_ENVIRONMENT=sandbox  (use 'production' for live payments; omit to default to sandbox)
 
 ## 3) Configure Trigger
 1. In Apps Script -> Triggers -> Add Trigger.
@@ -132,9 +134,15 @@ Ops status update endpoint (OFFICER/SPONSOR only):
 
 Ops dashboard role behavior:
 - MEMBER: can view all queues; no status update controls shown.
-- OFFICER / SPONSOR: can view all queues and advance order status via dropdown.
+- OFFICER / SPONSOR: can view all queues, advance order status via dropdown, mark orders as paid, and cancel orders.
 - Role is read from the `Role` column in the ClubRoster sheet (MEMBER, OFFICER, SPONSOR).
-- `updateOrderStatus` is also gated server-side to OFFICER/SPONSOR — MEMBERs cannot call the update endpoint directly.
+- `updateOrderStatus` and `cancelOrderAndGetDashboard` are gated server-side to OFFICER/SPONSOR — MEMBERs cannot call these functions directly.
+
+Cancellation behavior:
+- Any order in any active queue can be cancelled by an OFFICER or SPONSOR.
+- Click "Cancel Order" on an order card, enter a reason, then click "Confirm Cancellation".
+- The order `Status` is set to `Cancelled` and it disappears from the dashboard immediately.
+- A cancellation email is automatically sent to the customer with the reason provided.
 
 ## 5) Connect to Google Sites
 1. Embed product pages and Square payment links.
@@ -174,20 +182,33 @@ Custom status progression for operations:
 Note:
 - Pickup window is intentionally assigned when status transitions to In Production.
 
-## Switching to Square API Later
-When token and permissions are available:
-1. Set Script Properties:
-- SQUARE_PERSONAL_ACCESS_TOKEN
-- SQUARE_LOCATION_ID
-2. Change mode:
-- Run setIntegrationMode('SQUARE_API') in Apps Script editor, or
-- Use web endpoint (authorized ops user):
-  - <webapp-url>?action=mode&mode=SQUARE_API
-3. Validate:
-- <webapp-url>?action=products should show squareApiEnabled=true.
+## Switching to Square API (Dynamic Cart Checkout)
+When ready to enable live Square payments for the shopping cart:
+1. In your [Square Developer Dashboard](https://developer.squareup.com), create an application and copy your access token and location ID.
+2. Set Script Properties in Apps Script → Project Settings → Script Properties:
+   - `SQUARE_PERSONAL_ACCESS_TOKEN` = your access token
+   - `SQUARE_LOCATION_ID` = your location ID
+   - `SQUARE_ENVIRONMENT` = `sandbox` for testing, `production` for live payments
+   - `INTEGRATION_MODE` = `SQUARE_API`
+3. Test in sandbox first:
+   - Set `SQUARE_ENVIRONMENT=sandbox` and use sandbox credentials from the Square Developer Dashboard.
+   - Place a test cart order and confirm the redirect to Square Checkout occurs and a payment link appears in the Orders sheet.
+4. Go live:
+   - Swap to production credentials and set `SQUARE_ENVIRONMENT=production`.
+5. Validate:
+   - `<webapp-url>?action=products` should return `squareApiEnabled: true`.
 
-Rollback:
-- setIntegrationMode('PAYMENT_LINKS')
+What changes in Square API mode:
+- Cart checkout generates a single Square Checkout link covering all items (instead of per-item static links).
+- Customer name and email are pre-filled on the Square payment page.
+- The order number is included as a reference on the Square transaction.
+- After payment, Square redirects the customer back to their order status page.
+- The generated payment URL is saved to the `PaymentLink` column in the Orders sheet.
+- If the Square API call fails, the order is still created and the customer is told to contact the store for payment.
+
+Rollback to static payment links:
+- Set `INTEGRATION_MODE=PAYMENT_LINKS` (or run `setIntegrationMode('PAYMENT_LINKS')` in the Apps Script editor).
+- Cart checkout will revert to showing per-item links from the Products sheet `PaymentLink` column.
 
 ## Notes
 - Keep API tokens only in Script Properties, never in sheet cells or site HTML.

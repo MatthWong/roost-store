@@ -47,6 +47,8 @@ function getDashboardOrders() {
   // Resolve column indices that may appear under different header names
   var orderTypeIdx    = firstDefinedIndex_(index, ['OrderType', 'Order Type']);
   var customerNameIdx = firstDefinedIndex_(index, ['CustomerName', 'Customer Name', 'Full Name', 'Name']);
+  var customerEmailIdx = firstDefinedIndex_(index, ['CustomerEmail', 'Customer Email', 'School Email']);
+  var isPaidIdx       = firstDefinedIndex_(index, ['IsPaid', 'Is Paid', 'Paid']);
 
   for (var i = 1; i < values.length; i += 1) {
     var row = values[i];
@@ -59,11 +61,13 @@ function getDashboardOrders() {
       orderNumber:      index.OrderNumber      !== undefined ? String(row[index.OrderNumber]      || '') : '',
       orderType:        orderTypeIdx           !== undefined ? String(row[orderTypeIdx]           || '') : '',
       customerName:     customerNameIdx        !== undefined ? String(row[customerNameIdx]        || '') : '',
+      customerEmail:    customerEmailIdx       !== undefined ? String(row[customerEmailIdx]       || '') : '',
       status:           status,
       updatedAt:        index.UpdatedAt        !== undefined ? row[index.UpdatedAt]               : '',
       itemSummary:      index.ItemSummary      !== undefined ? String(row[index.ItemSummary]      || '') : '',
       pickupWindow:     index.PickupWindow     !== undefined ? String(row[index.PickupWindow]     || '') : '',
-      duplicateWarning: index.DuplicateWarning !== undefined ? String(row[index.DuplicateWarning] || '') === 'true' : false
+      duplicateWarning: index.DuplicateWarning !== undefined ? String(row[index.DuplicateWarning] || '') === 'true' : false,
+      isPaid:           isPaidIdx              !== undefined ? String(row[isPaidIdx]              || '').toLowerCase() === 'true' : false
     };
 
     if (status === 'Submitted')           { queues.needsReview.push(order); }

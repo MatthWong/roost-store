@@ -369,7 +369,7 @@
             <input type="text"  id="custName"  placeholder="Full Name"    required />
             <input type="email" id="custEmail" placeholder="School Email" required />
             <p class="checkout-note">
-              Payment links will be included in your confirmation email.
+              A payment link will be sent to your email after placing your order.
               Placing this order does not charge you immediately.
             </p>
             <div class="form-error" id="formError"></div>
@@ -384,7 +384,7 @@
             <b>Order #:</b> <span id="successOrderNum"></span><br>
             <b>Receipt:</b> <span id="successReceipt"></span>
           </p>
-          <p class="success-detail">Check your email for payment links and order status updates.</p>
+          <p class="success-detail" id="successMsg">Check your email for payment links and order status updates.</p>
           <div id="successPayLinks"></div>
           <button class="new-order-btn" onclick="resetCart()">Start a New Order</button>
         </div>
@@ -564,15 +564,24 @@
         document.getElementById('successReceipt').textContent  = result.receiptCode;
 
         var payLinksEl = document.getElementById('successPayLinks');
-        var linksWithUrl = (result.items || []).filter(function(i) { return i.paymentLink; });
-        if (linksWithUrl.length) {
-          payLinksEl.innerHTML = '<p style="font-size:12px;font-weight:700;margin-bottom:4px;">Pay now:</p>'
-            + linksWithUrl.map(function(i) {
-                return '<a class="pay-link" href="' + esc(i.paymentLink) + '" target="_blank">'
-                  + 'Pay for ' + esc(i.name) + ' (' + i.quantity + '×)</a>';
-              }).join('');
+        var msgEl = document.getElementById('successMsg');
+        if (result.paymentUrl) {
+          msgEl.textContent = 'Order saved! Taking you to payment…';
+          payLinksEl.innerHTML = '<p style="font-size:12px;color:var(--muted);">If you are not redirected automatically, <a href="' + esc(result.paymentUrl) + '" target="_blank">click here</a>.</p>';
+          setTimeout(function() {
+            window.top.location.href = result.paymentUrl;
+          }, 1500);
         } else {
-          payLinksEl.innerHTML = '<p style="font-size:12px;color:var(--muted);">Payment links have been sent to your email.</p>';
+          var linksWithUrl = (result.items || []).filter(function(i) { return i.paymentLink; });
+          if (linksWithUrl.length) {
+            payLinksEl.innerHTML = '<p style="font-size:12px;font-weight:700;margin-bottom:4px;">Pay now:</p>'
+              + linksWithUrl.map(function(i) {
+                  return '<a class="pay-link" href="' + esc(i.paymentLink) + '" target="_blank">'
+                    + 'Pay for ' + esc(i.name) + ' (' + i.quantity + '×)</a>';
+                }).join('');
+          } else {
+            payLinksEl.innerHTML = '<p style="font-size:12px;color:var(--muted);">Contact the store to arrange payment — we\'ll be in touch shortly.</p>';
+          }
         }
 
         if (!cartOpen) { toggleCart(); }

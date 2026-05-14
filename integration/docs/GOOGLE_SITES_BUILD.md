@@ -116,6 +116,24 @@ Checker note:
    - The page still exists at its URL but won't appear in the nav bar.
 3. **Note on access control**: New Google Sites does not support per-page access restrictions. Access control is enforced by the Apps Script web app itself — anyone who navigates to the page will see an error from the dashboard embed if they are not in the ClubRoster sheet with `IsActive = true`. No order data is ever exposed to unauthorized users.
    - If your school uses Google Workspace and you want to fully hide the page, publish the *entire site* to "Only people in [your domain]" (Publish settings → Who can view → Anyone in your organization). This restricts the whole site to signed-in school accounts.
+4. Add a section title: **Order Queue**.
+5. Add instruction text:
+   - Officers and sponsors can advance order status, mark orders as paid, and cancel orders from this dashboard.
+   - Members can view orders but cannot change status or cancel.
+   - The dashboard auto-refreshes every 60 seconds.
+6. Add an Embed component or Button link:
+   - **Recommended**: Use a **Button** component → link to `<webapp-url>?action=dashboard` with "Open in new tab" behavior. This is the most reliable method because the dashboard requires Google identity, which only works in a direct browser tab (not an iframe — modern browsers block third-party cookies in iframes, which prevents Apps Script from identifying the user).
+   - **Embed fallback**: If you do embed via Insert → Embed → By URL, the page will display an "Open Dashboard in New Tab" button automatically when identity cannot be determined inside the iframe.
+7. Add a note linking to the Google Sheet for detailed order data.
+
+Dashboard queue reference:
+| Queue | Order Status |
+|---|---|
+| Needs Review | Submitted |
+| Under Review | Under Review |
+| Awaiting Response | Quote Provided |
+| In Production | In Production |
+| Ready for Pickup | Ready for Pickup |
 
 ### 11. Shopping Cart Page
 1. Create a new page: **Shop** (or **Order Online**).
@@ -128,32 +146,22 @@ Checker note:
 8. After a successful order, the customer receives a confirmation email with:
    - Order Number + Receipt Code
    - Itemized list with quantities and prices
-   - Square payment link per product
+   - A single Square Checkout link for the entire cart (when `INTEGRATION_MODE=SQUARE_API`) — the page automatically redirects to Square after placing the order
+   - Per-item static Square payment links (when `INTEGRATION_MODE=PAYMENT_LINKS`)
    - Pre-filled status tracker link
-4. Add section title: Order Queue.
-5. Add instruction text:
-   - Officers and sponsors can advance order status from this dashboard.
-   - Members can view orders but cannot change status.
-   - The dashboard auto-refreshes every 60 seconds.
-5. Add an Embed component or Button link:
-   - **Recommended**: Use a **Button** component → link to `<webapp-url>?action=dashboard` with "Open in new tab" behavior. This is the most reliable method because the dashboard requires Google identity, which only works in a direct browser tab (not an iframe — modern browsers block third-party cookies in iframes, which prevents Apps Script from identifying the user).
-   - **Embed fallback**: If you do embed via Insert → Embed → By URL, the page will display an "Open Dashboard in New Tab" button automatically when identity cannot be determined inside the iframe.
-7. Add a note linking to the Google Sheet for detailed order data.
-
-Dashboard queue reference:
-| Queue | Order Status |
-|---|---|
-| Needs Review | Submitted |
-| Awaiting Response | Quote Provided |
-| In Production | In Production |
-| Ready for Pickup | Ready for Pickup |
+9. Square API mode setup (for dynamic cart checkout):
+   - Set `INTEGRATION_MODE=SQUARE_API`, `SQUARE_PERSONAL_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, and `SQUARE_ENVIRONMENT` (`sandbox` or `production`) in Script Properties.
+   - See SETUP.md "Switching to Square API" section for full steps.
 
 ## Integration Checklist
 - Every product card has a working Square payment link.
 - Custom Orders button opens the Google Form.
 - Order Status page links to the status checker endpoint/page.
-- Shopping Cart page embeds <webapp-url>?action=cart and loads products from the Products sheet.
-- Ops Dashboard page is restricted to DECA members and embeds <webapp-url>?action=dashboard.
+- Shopping Cart page embeds `<webapp-url>?action=cart` and loads products from the Products sheet.
+- Cart checkout redirects to Square Checkout (`SQUARE_API` mode) or displays per-item payment links (`PAYMENT_LINKS` mode).
+- Ops Dashboard page is restricted to DECA members and opens via `<webapp-url>?action=dashboard`.
+- Ops Dashboard "Mark as Paid" button works for Ready for Pickup orders (OFFICER/SPONSOR only).
+- Ops Dashboard "Cancel Order" button cancels the order and emails the customer (OFFICER/SPONSOR only).
 - Navigation works on desktop and mobile.
 - Theme colors are consistently purple and gold.
 
@@ -171,4 +179,8 @@ Dashboard queue reference:
 5. Confirm at least one food and one merchandise Square checkout flow opens correctly.
 6. Confirm the Ops Dashboard page is visible to logged-in DECA members and restricted from public access.
 7. Confirm OFFICER/SPONSOR can advance an order status from the dashboard.
-8. Confirm MEMBER sees orders but no Update button.
+8. Confirm MEMBER sees orders but no status update, paid, or cancel controls.
+9. Place a test cart order — confirm confirmation email is received with a payment link.
+10. If `INTEGRATION_MODE=SQUARE_API`: confirm cart redirects to Square Checkout and `PaymentLink` column is populated in the Orders sheet.
+11. Confirm OFFICER/SPONSOR can mark a Ready for Pickup order as paid — `IsPaid` column updates to `TRUE` in the Orders sheet.
+12. Confirm OFFICER/SPONSOR can cancel any active order — order disappears from dashboard and customer receives a cancellation email with the stated reason.
