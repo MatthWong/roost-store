@@ -430,10 +430,27 @@
             google.script.run
               .withSuccessHandler(function() {
                 showToast('Updated ' + orderNumber + ' → ' + newStatus);
-                refreshData();
+                document.getElementById('refresh-status').textContent = 'Refreshing…';
+                google.script.run
+                  .withSuccessHandler(function(result) {
+                    if (result) {
+                      USER_ROLE = result.userRole || USER_ROLE;
+                      renderAll(result.orders || {});
+                    } else {
+                      btn.disabled = false;
+                      btn.textContent = 'Update';
+                    }
+                  })
+                  .withFailureHandler(function() {
+                    document.getElementById('refresh-status').textContent = 'Refresh failed — retrying…';
+                    btn.disabled = false;
+                    btn.textContent = 'Update';
+                  })
+                  .getDashboardDataForUI();
               })
               .withFailureHandler(function(err) {
                 var msg = (err && err.message) ? err.message : 'Update failed.';
+                showToast('Error: ' + msg);
                 if (msgEl) { msgEl.textContent = msg; msgEl.className = 'action-msg err'; }
                 btn.disabled = false;
                 btn.textContent = 'Update';
