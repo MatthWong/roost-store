@@ -161,45 +161,45 @@
       function checkStatus() {
         var orderNumber = normalizeOrderNumber(document.getElementById('orderNumber').value);
         var receiptCode = normalizeReceiptCode(document.getElementById('receiptCode').value);
+        var result = document.getElementById('result');
 
         if (!orderNumber || !receiptCode) {
           renderError('Please enter both order number and receipt code.');
           return;
         }
 
-        var base = WEB_APP_URL || (window.location.origin + window.location.pathname);
-        window.location.href =
-          base +
-          '?action=checker&orderNumber=' +
+        result.style.display = 'block';
+        result.innerHTML = 'Checking\u2026';
+
+        var url = WEB_APP_URL +
+          '?action=status&orderNumber=' +
           encodeURIComponent(orderNumber) +
           '&receiptCode=' +
           encodeURIComponent(receiptCode);
+
+        fetch(url)
+          .then(function(res) { return res.json(); })
+          .then(function(body) {
+            handleStatusPayload(body, orderNumber, receiptCode);
+          })
+          .catch(function(err) {
+            renderError('Unable to reach the server. Please try again.', null, orderNumber, receiptCode);
+          });
       }
 
-      function getUrlParam(name) {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          return params.get(name) || '';
-        } catch (e) {
-          return '';
-        }
-      }
-
-      function handleStatusPayload(body) {
+      function handleStatusPayload(body, sentOrder, sentReceipt) {
         if (!body || body.statusCode !== 200 || !body.data) {
           var err = (body && body.data && body.data.error) ? body.data.error : 'Order not found.';
           var statusCode = body ? body.statusCode : null;
-          renderError(err, statusCode);
+          renderError(err, statusCode, sentOrder, sentReceipt);
           return;
         }
 
         renderSuccess(body.data);
       }
 
-      function renderError(message, statusCode) {
+      function renderError(message, statusCode, sentOrder, sentReceipt) {
         var result = document.getElementById('result');
-        var sentOrder = getUrlParam('orderNumber');
-        var sentReceipt = getUrlParam('receiptCode');
         var debugHtml = '';
         if (sentOrder || sentReceipt) {
           debugHtml = '<div class="debug-info">' +
