@@ -93,7 +93,28 @@ function doGet(e) {
     }
 
     if (action === 'dashboard') {
-      assertAuthorizedOpsUser_();
+      try {
+        assertAuthorizedOpsUser_();
+      } catch (authErr) {
+        var authPage = HtmlService.createHtmlOutput(
+          '<!doctype html><html><head><meta charset="utf-8">'
+          + '<style>body{margin:0;display:flex;align-items:center;justify-content:center;'
+          + 'min-height:100vh;background:#1a1a2e;font-family:Arial,sans-serif;color:#e0e0e0;}'
+          + '.box{text-align:center;padding:32px;}.box h2{margin:0 0 12px;font-size:18px;}'
+          + '.box p{color:#9a9ab0;margin:0 0 20px;font-size:13px;}'
+          + '.btn{display:inline-block;background:#5b2d90;color:#fff;padding:10px 22px;'
+          + 'border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;}</style>'
+          + '</head><body><div class="box">'
+          + '<h2>&#128274; Sign-in Required</h2>'
+          + '<p>The dashboard must be opened directly in a browser tab.<br>'
+          + 'Embedded iframes cannot pass your Google identity.</p>'
+          + '<a class="btn" href="' + ScriptApp.getService().getUrl() + '?action=dashboard" target="_blank">'
+          + 'Open Dashboard in New Tab</a>'
+          + '</div></body></html>'
+        );
+        return authPage.setTitle('Sign-in Required')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      }
       var dashboardData = getDashboardOrders();
       var userRole = getUserRole_();
       var template = HtmlService.createTemplateFromFile('Dashboard');

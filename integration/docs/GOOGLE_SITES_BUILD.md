@@ -111,18 +111,20 @@ Checker note:
 
 ### 10. Ops Dashboard Page (Members Only)
 1. Create a new page: **Operations** (or **Team Dashboard**).
-2. Set page access: click the page settings gear -> **Restrict page** -> add only DECA member, officer, and sponsor Google accounts.
-   - Do not make this page publicly visible.
-3. Add section title: Order Queue.
-4. Add instruction text:
+2. Hide the page from the site navigation so casual visitors don't see it:
+   - In the Pages panel (right side), hover the page name → click the three-dot menu (⋮) → **Hide from navigation**.
+   - The page still exists at its URL but won't appear in the nav bar.
+3. **Note on access control**: New Google Sites does not support per-page access restrictions. Access control is enforced by the Apps Script web app itself — anyone who navigates to the page will see an error from the dashboard embed if they are not in the ClubRoster sheet with `IsActive = true`. No order data is ever exposed to unauthorized users.
+   - If your school uses Google Workspace and you want to fully hide the page, publish the *entire site* to "Only people in [your domain]" (Publish settings → Who can view → Anyone in your organization). This restricts the whole site to signed-in school accounts.
+4. Add section title: Order Queue.
+5. Add instruction text:
    - Officers and sponsors can advance order status from this dashboard.
    - Members can view orders but cannot change status.
    - The dashboard auto-refreshes every 60 seconds.
-5. Add an Embed component:
-   - Google Sites: Insert -> Embed -> By URL.
-   - Embed URL: `<webapp-url>?action=dashboard`
-   - Recommended embed height: 700 px or taller to show all four queues without scrolling.
-6. Add a note linking to the Google Sheet for detailed order data.
+5. Add an Embed component or Button link:
+   - **Recommended**: Use a **Button** component → link to `<webapp-url>?action=dashboard` with "Open in new tab" behavior. This is the most reliable method because the dashboard requires Google identity, which only works in a direct browser tab (not an iframe — modern browsers block third-party cookies in iframes, which prevents Apps Script from identifying the user).
+   - **Embed fallback**: If you do embed via Insert → Embed → By URL, the page will display an "Open Dashboard in New Tab" button automatically when identity cannot be determined inside the iframe.
+7. Add a note linking to the Google Sheet for detailed order data.
 
 Dashboard queue reference:
 | Queue | Order Status |

@@ -422,7 +422,7 @@
             var url = WEB_APP_URL + '?action=update-status' +
               '&orderNumber=' + encodeURIComponent(orderNumber) +
               '&newStatus='   + encodeURIComponent(newStatus);
-            fetch(url)
+            fetch(url, { credentials: 'include' })
               .then(function(r) { return r.json(); })
               .then(function(body) {
                 if (body && body.statusCode === 200) {
@@ -454,7 +454,7 @@
       }
 
       function refreshData() {
-        fetch(WEB_APP_URL + '?action=dashboard-data')
+        fetch(WEB_APP_URL + '?action=dashboard-data', { credentials: 'include' })
           .then(function(r) { return r.json(); })
           .then(function(body) {
             if (body && body.statusCode === 200 && body.data) {
