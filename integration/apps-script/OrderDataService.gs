@@ -19,6 +19,10 @@ function getDashboardOrders() {
 
   var queues = { needsReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
 
+  // Resolve column indices that may appear under different header names
+  var orderTypeIdx    = firstDefinedIndex_(index, ['OrderType', 'Order Type']);
+  var customerNameIdx = firstDefinedIndex_(index, ['CustomerName', 'Customer Name', 'Full Name', 'Name']);
+
   for (var i = 1; i < values.length; i += 1) {
     var row = values[i];
     var status = String(row[index.Status] || '').trim();
@@ -28,8 +32,8 @@ function getDashboardOrders() {
 
     var order = {
       orderNumber:      index.OrderNumber      !== undefined ? String(row[index.OrderNumber]      || '') : '',
-      orderType:        index.OrderType        !== undefined ? String(row[index.OrderType]        || '') : '',
-      customerName:     index.CustomerName     !== undefined ? String(row[index.CustomerName]     || '') : '',
+      orderType:        orderTypeIdx           !== undefined ? String(row[orderTypeIdx]           || '') : '',
+      customerName:     customerNameIdx        !== undefined ? String(row[customerNameIdx]        || '') : '',
       status:           status,
       updatedAt:        index.UpdatedAt        !== undefined ? row[index.UpdatedAt]               : '',
       itemSummary:      index.ItemSummary      !== undefined ? String(row[index.ItemSummary]      || '') : '',
@@ -52,6 +56,17 @@ function getHeaderIndexMap_(headers) {
     map[String(headers[i]).trim()] = i;
   }
   return map;
+}
+
+// Returns the index of the first key in `candidates` that exists in `indexMap`,
+// or undefined if none match.
+function firstDefinedIndex_(indexMap, candidates) {
+  for (var i = 0; i < candidates.length; i += 1) {
+    if (indexMap[candidates[i]] !== undefined) {
+      return indexMap[candidates[i]];
+    }
+  }
+  return undefined;
 }
 
 function getAllRowsAsObjects_(sheetName) {
