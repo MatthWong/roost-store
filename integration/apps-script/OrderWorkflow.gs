@@ -1,62 +1,69 @@
 function onFormSubmit(e) {
-  var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
-  var headers = sheet.getDataRange().getValues()[0];
-  var index = getHeaderIndexMap_(headers);
-
-  var rowIndex = e.range.getRow();
+  // Resolve identifiers and customer data first so they are available in the
+  // catch block for error notification even if deeper workflow steps fail.
   var orderNumber = createTemporaryOrderId_();
   var receiptCode = createReceiptCode_();
-  var now = new Date();
   var formData = normalizeFormData_(e && e.namedValues ? e.namedValues : {});
   var resolvedCustomerEmail = getCustomerEmail_(formData);
   if (resolvedCustomerEmail && !getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail'])) {
     formData['School Email'] = resolvedCustomerEmail;
   }
-  var orderType = detectOrderType_(formData);
-  var isCustom = isCustomOrderType_(orderType);
 
-  validateFormSubmission_(formData, orderType);
-  validateImageRules_(formData);
+  try {
+    var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
+    var headers = sheet.getDataRange().getValues()[0];
+    var index = getHeaderIndexMap_(headers);
+    var rowIndex = e.range.getRow();
+    var now = new Date();
+    var orderType = detectOrderType_(formData);
+    var isCustom = isCustomOrderType_(orderType);
 
-  var status = isCustom ? AppConfig.orderStatus.submitted : AppConfig.orderStatus.pending;
-  var pickupWindow = isCustom ? '' : getNextPickupWindow_();
-  var duplicateWarning = isCustom ? detectDuplicateCustomOrderSignature_(formData) : false;
+    validateFormSubmission_(formData, orderType);
+    validateImageRules_(formData);
 
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.OrderNumber, orderNumber);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ReceiptCode, receiptCode);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.TemporaryOrderID, orderNumber);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.PermanentOrderNumber, '');
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.Status, status);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.OrderType, orderType);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.QuoteRequired, shouldRequireQuote_(orderType));
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ItemSummary, buildItemSummary_(formData, orderType));
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.PickupWindow, pickupWindow);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.DuplicateWarning, duplicateWarning ? 'true' : 'false');
-  var imageUrl = getDesignImageUploadValue_(formData, orderType);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileURL, imageUrl);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileName, getFileNameFromUrl_(imageUrl));
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageUploadedAt, now);
-  setCellValueIfHeaderExists_(sheet, rowIndex, index.UpdatedAt, now);
+    var status = isCustom ? AppConfig.orderStatus.submitted : AppConfig.orderStatus.pending;
+    var pickupWindow = isCustom ? '' : getNextPickupWindow_();
+    var duplicateWarning = isCustom ? detectDuplicateCustomOrderSignature_(formData) : false;
 
-  if (isCustom) {
-    addOrderItemRows_(orderNumber, extractOrderItems_(formData));
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.OrderNumber, orderNumber);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.ReceiptCode, receiptCode);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.TemporaryOrderID, orderNumber);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.PermanentOrderNumber, '');
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.Status, status);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.OrderType, orderType);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.QuoteRequired, shouldRequireQuote_(orderType));
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.ItemSummary, buildItemSummary_(formData, orderType));
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.PickupWindow, pickupWindow);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.DuplicateWarning, duplicateWarning ? 'true' : 'false');
+    var imageUrl = getDesignImageUploadValue_(formData, orderType);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileURL, imageUrl);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageFileName, getFileNameFromUrl_(imageUrl));
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.ImageUploadedAt, now);
+    setCellValueIfHeaderExists_(sheet, rowIndex, index.UpdatedAt, now);
+
+    if (isCustom) {
+      addOrderItemRows_(orderNumber, extractOrderItems_(formData));
+    }
+
+    sendSubmissionConfirmationEmail_(formData, {
+      orderNumber: orderNumber,
+      receiptCode: receiptCode,
+      orderType: orderType,
+      status: status,
+      pickupWindow: pickupWindow
+    });
+
+    return {
+      orderNumber: orderNumber,
+      receiptCode: receiptCode,
+      pickupWindow: pickupWindow,
+      status: status,
+      duplicateWarning: duplicateWarning
+    };
+  } catch (error) {
+    sendWorkflowErrorEmail_(formData, orderNumber, receiptCode, error);
+    throw error;
   }
-
-  sendSubmissionConfirmationEmail_(formData, {
-    orderNumber: orderNumber,
-    receiptCode: receiptCode,
-    orderType: orderType,
-    status: status,
-    pickupWindow: pickupWindow
-  });
-
-  return {
-    orderNumber: orderNumber,
-    receiptCode: receiptCode,
-    pickupWindow: pickupWindow,
-    status: status,
-    duplicateWarning: duplicateWarning
-  };
 }
 
 function setCellValueIfHeaderExists_(sheet, row, headerIndex, value) {
@@ -129,7 +136,7 @@ function getNextPickupWindow_() {
 }
 
 function updateOrderStatus(orderNumber, newStatus) {
-  assertAuthorizedOpsUser_();
+  assertOfficerOrSponsor_();
 
   var allowed = Object.keys(AppConfig.orderStatus).map(function(key) {
     return AppConfig.orderStatus[key];
@@ -384,9 +391,14 @@ function detectDuplicateCustomOrderSignature_(formData) {
 }
 
 function getFileExtension_(url) {
+  // Google Forms file uploads produce Drive URLs (e.g. https://drive.google.com/open?id=...)
+  // which have no file extension in the path. Extract the extension from the last path
+  // segment only so that domain parts like "com" are never treated as an extension.
   var clean = String(url || '').split('?')[0].toLowerCase();
-  var parts = clean.split('.');
-  return parts.length > 1 ? parts[parts.length - 1] : '';
+  var pathParts = clean.split('/');
+  var filename = pathParts[pathParts.length - 1];
+  var dotIndex = filename.lastIndexOf('.');
+  return dotIndex !== -1 ? filename.slice(dotIndex + 1) : '';
 }
 
 function getFileNameFromUrl_(url) {
@@ -455,6 +467,26 @@ function assertAuthorizedOpsUser_() {
   }
 }
 
+function getUserRole_() {
+  var email = Session.getActiveUser().getEmail();
+  if (!email) {
+    return null;
+  }
+  var roster = getAllRowsAsObjects_(AppConfig.sheets.clubRoster);
+  var found = roster.find(function(row) {
+    return String(row.Email || '').toLowerCase() === email.toLowerCase() && String(row.IsActive).toLowerCase() === 'true';
+  });
+  return found ? String(found.Role || '').toUpperCase() : null;
+}
+
+function assertOfficerOrSponsor_() {
+  assertAuthorizedOpsUser_();
+  var role = getUserRole_();
+  if (role !== 'OFFICER' && role !== 'SPONSOR') {
+    throw new Error('This action requires Officer or Sponsor role.');
+  }
+}
+
 function getDesignImageUploadValue_(formData, orderType) {
   var keys = ['Design Image Upload', 'DesignImageUpload'];
 
@@ -495,9 +527,12 @@ function sendSubmissionConfirmationEmail_(formData, orderData) {
   }
 
   if (checkerUrl) {
+    var statusLink = checkerUrl +
+      '?action=checker&orderNumber=' + encodeURIComponent(orderData.orderNumber) +
+      '&receiptCode=' + encodeURIComponent(orderData.receiptCode);
     lines.push('');
-    lines.push('Check status here: ' + checkerUrl);
-    lines.push('Use your order number and receipt code shown above.');
+    lines.push('Check your order status here:');
+    lines.push(statusLink);
   }
 
   lines.push('');
@@ -522,6 +557,66 @@ function sendSubmissionConfirmationEmail_(formData, orderData) {
 function getStatusCheckerUrl_() {
   var value = PropertiesService.getScriptProperties().getProperty(AppConfig.statusCheckerUrlProperty);
   return String(value || '').trim();
+}
+
+function sendWorkflowErrorEmail_(formData, orderNumber, receiptCode, error) {
+  var name = getFormValue_(formData, ['Full Name', 'Customer Name', 'CustomerName']) || 'Customer';
+  var recipients = getSubmissionEmailRecipients_(formData);
+  var adminEmail = '';
+  try { adminEmail = String(Session.getEffectiveUser().getEmail() || '').trim(); } catch (e) {}
+
+  // Customer notification
+  if (recipients.to) {
+    try {
+      MailApp.sendEmail({
+        to: recipients.to,
+        subject: 'Roost Store — Issue with Your Order Submission',
+        body: [
+          'Hi ' + name + ',',
+          '',
+          'We received your order submission but encountered an issue while processing it.',
+          'Our store team has been notified and will follow up with you shortly.',
+          '',
+          'For reference:',
+          'Order number: ' + orderNumber,
+          'Receipt code: ' + receiptCode,
+          '',
+          'If you need immediate assistance, please reply to this email or contact the store team.',
+          '',
+          '— Roost Store'
+        ].join('\n')
+      });
+    } catch (mailErr) {
+      Logger.log('Error notification to customer failed: ' + mailErr.message);
+    }
+  }
+
+  // Admin notification
+  if (adminEmail && adminEmail !== recipients.to) {
+    try {
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: 'Roost Store — Workflow Error: ' + orderNumber,
+        body: [
+          'A form submission workflow error occurred.',
+          '',
+          'Order number: ' + orderNumber,
+          'Receipt code: ' + receiptCode,
+          'Customer name: ' + name,
+          'Customer email: ' + (recipients.to || '(unknown)'),
+          '',
+          'Error: ' + error.message,
+          '',
+          'The order row may have been created in the sheet without full processing.',
+          'Please review and manually update the order status if needed.'
+        ].join('\n')
+      });
+    } catch (mailErr) {
+      Logger.log('Error notification to admin failed: ' + mailErr.message);
+    }
+  }
+
+  Logger.log('Workflow error for ' + orderNumber + ': ' + error.message);
 }
 
 function getCustomerEmail_(formData) {

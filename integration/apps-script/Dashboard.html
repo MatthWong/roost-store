@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Roost Store — Ops Dashboard</title>
+    <style>
+      :root {
+        --bg:        #1a1a2e;
+        --surface:   #16213e;
+        --card:      #0f3460;
+        --accent:    #5b2d90;
+        --accent-h:  #7a3fbf;
+        --text:      #e0e0e0;
+        --muted:     #9a9ab0;
+        --border:    #2a2a4a;
+        --warn:      #e08020;
+        --ok:        #2ecc71;
+        --badge-r:   #c0392b;
+        --badge-y:   #d4ac0d;
+        --badge-b:   #2980b9;
+        --badge-g:   #27ae60;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        min-height: 100vh;
+      }
+
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      header h1 { font-size: 18px; color: #fff; }
+
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .role-badge {
+        background: var(--accent);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      #refresh-status { font-size: 11px; color: var(--muted); }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        padding: 20px;
+      }
+
+      .queue {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .queue-header {
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .queue-header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+
+      .count-badge {
+        min-width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 0 6px;
+        background: var(--border);
+        color: var(--text);
+      }
+
+      .count-badge.has-items { background: var(--accent); color: #fff; }
+
+      .queue-body { padding: 8px; }
+
+      .empty-msg {
+        text-align: center;
+        color: var(--muted);
+        padding: 20px 8px;
+        font-size: 12px;
+      }
+
+      .order-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+
+      .order-card:last-child { margin-bottom: 0; }
+
+      .order-summary {
+        padding: 10px 12px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        user-select: none;
+      }
+
+      .order-summary:hover { background: rgba(255,255,255,.04); }
+
+      .order-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .order-number { font-weight: 700; font-size: 13px; color: #fff; }
+
+      .status-pill {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 10px;
+        white-space: nowrap;
+        text-transform: uppercase;
+        color: #fff;
+      }
+
+      .pill-submitted    { background: var(--badge-r); }
+      .pill-quote        { background: var(--badge-y); color: #1a1a2e; }
+      .pill-production   { background: var(--badge-b); }
+      .pill-pickup       { background: var(--badge-g); }
+
+      .order-meta {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .order-meta span b { color: var(--text); }
+
+      .expand-icon {
+        float: right;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: -14px;
+      }
+
+      .order-detail {
+        display: none;
+        padding: 0 12px 12px;
+        border-top: 1px solid var(--border);
+        background: rgba(0,0,0,.15);
+      }
+
+      .order-detail.open { display: block; }
+
+      .detail-row {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .detail-row b { color: var(--text); }
+
+      .dup-warning {
+        display: inline-block;
+        margin-top: 6px;
+        background: var(--warn);
+        color: #1a1a2e;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 6px;
+      }
+
+      .action-row {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .action-row select {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 8px;
+        font-size: 12px;
+        flex: 1;
+      }
+
+      .action-row button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .action-row button:hover { background: var(--accent-h); }
+
+      .action-msg {
+        font-size: 11px;
+        margin-top: 4px;
+        color: var(--ok);
+      }
+
+      .action-msg.err { color: #e74c3c; }
+
+      #toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--accent);
+        color: #fff;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        opacity: 0;
+        transition: opacity .3s;
+        pointer-events: none;
+        z-index: 100;
+      }
+
+      #toast.show { opacity: 1; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>&#128203; Roost Store — Ops Dashboard</h1>
+      <div class="meta">
+        <span class="role-badge" id="roleDisplay">MEMBER</span>
+        <span id="refresh-status">Last refreshed: —</span>
+      </div>
+    </header>
+
+    <main id="dashboard">
+      <div class="queue" id="q-needsReview">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-r);">
+          <h2>&#128308; Needs Review</h2>
+          <span class="count-badge" id="cnt-needsReview">0</span>
+        </div>
+        <div class="queue-body" id="list-needsReview"></div>
+      </div>
+
+      <div class="queue" id="q-awaitingResponse">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-y);">
+          <h2>&#128993; Awaiting Response</h2>
+          <span class="count-badge" id="cnt-awaitingResponse">0</span>
+        </div>
+        <div class="queue-body" id="list-awaitingResponse"></div>
+      </div>
+
+      <div class="queue" id="q-inProduction">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-b);">
+          <h2>&#9881;&#65039; In Production</h2>
+          <span class="count-badge" id="cnt-inProduction">0</span>
+        </div>
+        <div class="queue-body" id="list-inProduction"></div>
+      </div>
+
+      <div class="queue" id="q-readyForPickup">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-g);">
+          <h2>&#9989; Ready for Pickup</h2>
+          <span class="count-badge" id="cnt-readyForPickup">0</span>
+        </div>
+        <div class="queue-body" id="list-readyForPickup"></div>
+      </div>
+    </main>
+
+    <div id="toast"></div>
+
+    <script id="initialData" type="application/json"><?!= initialDataJson ?></script>
+    <script>
+      var WEB_APP_URL = '<?!= webAppUrl ?>';
+      var USER_ROLE   = '<?!= userRole ?>';
+
+      var NEXT_STATUSES = {
+        'Submitted':       ['Under Review'],
+        'Under Review':    ['Quote Provided', 'In Production'],
+        'Quote Provided':  ['Quote Accepted'],
+        'Quote Accepted':  ['In Production'],
+        'In Production':   ['Ready for Pickup'],
+        'Ready for Pickup':['Picked Up']
+      };
+
+      var PILL_CLASS = {
+        'Submitted':        'pill-submitted',
+        'Quote Provided':   'pill-quote',
+        'In Production':    'pill-production',
+        'Ready for Pickup': 'pill-pickup'
+      };
+
+      document.getElementById('roleDisplay').textContent = USER_ROLE;
+
+      function formatDate(val) {
+        if (!val) { return '—'; }
+        try {
+          var d = new Date(val);
+          if (isNaN(d.getTime())) { return String(val); }
+          return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return String(val); }
+      }
+
+      function esc(str) {
+        return String(str || '')
+          .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      }
+
+      function buildActionRow(order) {
+        if (USER_ROLE !== 'OFFICER' && USER_ROLE !== 'SPONSOR') { return ''; }
+        var nexts = NEXT_STATUSES[order.status] || [];
+        if (!nexts.length) { return ''; }
+        var opts = nexts.map(function(s) {
+          return '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+        }).join('');
+        return '<div class="action-row">' +
+          '<select class="status-select">' + opts + '</select>' +
+          '<button class="update-btn" data-order="' + esc(order.orderNumber) + '">Update</button>' +
+          '</div>' +
+          '<div class="action-msg" id="msg-' + esc(order.orderNumber) + '"></div>';
+      }
+
+      function buildCard(order) {
+        var pill = PILL_CLASS[order.status] || '';
+        var detail = '';
+        if (order.itemSummary) {
+          detail += '<div class="detail-row"><b>Item:</b> ' + esc(order.itemSummary) + '</div>';
+        }
+        if (order.pickupWindow) {
+          detail += '<div class="detail-row"><b>Pickup Window:</b> ' + esc(order.pickupWindow) + '</div>';
+        }
+        if (order.duplicateWarning) {
+          detail += '<span class="dup-warning">&#9888; Possible Duplicate</span>';
+        }
+        detail += buildActionRow(order);
+
+        return '<div class="order-card">' +
+          '<div class="order-summary">' +
+            '<div class="order-top">' +
+              '<span class="order-number">' + esc(order.orderNumber) + '</span>' +
+              '<span class="status-pill ' + pill + '">' + esc(order.status) + '</span>' +
+            '</div>' +
+            '<div class="order-meta">' +
+              '<span><b>Type:</b> ' + esc(order.orderType || 'N/A') + '</span>' +
+              '<span><b>Customer:</b> ' + esc(order.customerName || 'N/A') + '</span>' +
+              '<span><b>Updated:</b> ' + esc(formatDate(order.updatedAt)) + '</span>' +
+            '</div>' +
+            '<span class="expand-icon">&#9660;</span>' +
+          '</div>' +
+          '<div class="order-detail">' + detail + '</div>' +
+        '</div>';
+      }
+
+      function renderQueue(listId, cntId, orders) {
+        var list = document.getElementById(listId);
+        var cnt  = document.getElementById(cntId);
+        cnt.textContent = orders.length;
+        cnt.className = 'count-badge' + (orders.length ? ' has-items' : '');
+        if (!orders.length) {
+          list.innerHTML = '<div class="empty-msg">No orders</div>';
+          return;
+        }
+        list.innerHTML = orders.map(buildCard).join('');
+        list.querySelectorAll('.order-summary').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var detail = el.nextElementSibling;
+            var icon = el.querySelector('.expand-icon');
+            detail.classList.toggle('open');
+            icon.innerHTML = detail.classList.contains('open') ? '&#9650;' : '&#9660;';
+          });
+        });
+        list.querySelectorAll('.update-btn').forEach(function(btn) {
+          btn.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            var orderNumber = btn.getAttribute('data-order');
+            var select = btn.parentElement.querySelector('.status-select');
+            var newStatus = select ? select.value : '';
+            var msgEl = document.getElementById('msg-' + orderNumber);
+            if (!newStatus) { return; }
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            var url = WEB_APP_URL + '?action=update-status' +
+              '&orderNumber=' + encodeURIComponent(orderNumber) +
+              '&newStatus='   + encodeURIComponent(newStatus);
+            fetch(url)
+              .then(function(r) { return r.json(); })
+              .then(function(body) {
+                if (body && body.statusCode === 200) {
+                  showToast('Updated ' + orderNumber + ' → ' + newStatus);
+                  refreshData();
+                } else {
+                  var err = (body && body.data && body.data.error) ? body.data.error : 'Update failed.';
+                  if (msgEl) { msgEl.textContent = err; msgEl.className = 'action-msg err'; }
+                  btn.disabled = false;
+                  btn.textContent = 'Update';
+                }
+              })
+              .catch(function() {
+                if (msgEl) { msgEl.textContent = 'Network error. Try again.'; msgEl.className = 'action-msg err'; }
+                btn.disabled = false;
+                btn.textContent = 'Update';
+              });
+          });
+        });
+      }
+
+      function renderAll(data) {
+        renderQueue('list-needsReview',     'cnt-needsReview',     data.needsReview     || []);
+        renderQueue('list-awaitingResponse','cnt-awaitingResponse', data.awaitingResponse|| []);
+        renderQueue('list-inProduction',    'cnt-inProduction',    data.inProduction     || []);
+        renderQueue('list-readyForPickup',  'cnt-readyForPickup',  data.readyForPickup   || []);
+        document.getElementById('refresh-status').textContent =
+          'Last refreshed: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      function refreshData() {
+        fetch(WEB_APP_URL + '?action=dashboard-data')
+          .then(function(r) { return r.json(); })
+          .then(function(body) {
+            if (body && body.statusCode === 200 && body.data) {
+              USER_ROLE = body.data.userRole || USER_ROLE;
+              renderAll(body.data.orders || {});
+            }
+          })
+          .catch(function() {
+            document.getElementById('refresh-status').textContent = 'Refresh failed — retrying…';
+          });
+      }
+
+      function showToast(msg) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 3000);
+      }
+
+      // Initial render from server-injected data
+      var initialText = document.getElementById('initialData').textContent || '';
+      try {
+        var initialData = JSON.parse(initialText);
+        renderAll(initialData);
+      } catch (e) {
+        renderAll({});
+      }
+
+      // Auto-refresh every 60 seconds
+      setInterval(refreshData, 60000);
+    </script>
+  </body>
+</html>

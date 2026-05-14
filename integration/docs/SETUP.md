@@ -67,7 +67,9 @@ Important:
 ## 2) Add Apps Script
 1. Open the Google Sheet -> Extensions -> Apps Script.
 2. Create files and paste all scripts from ../apps-script.
-3. Add HTML file `StatusChecker.html` from integration/apps-script/StatusChecker.html.
+3. Add HTML files from integration/apps-script/:
+   - `StatusChecker.html`
+   - `Dashboard.html`
 4. In Script Properties, set:
 - INTEGRATION_MODE=PAYMENT_LINKS
 - ALLOWED_SCHOOL_DOMAIN=<your school domain>
@@ -113,11 +115,29 @@ Note on order IDs:
 Products endpoint example:
 - <webapp-url>?action=products
 
+Ops dashboard URL (embed in members-only Google Sites page):
+- <webapp-url>?action=dashboard
+
+Ops dashboard data endpoint (JSON, used by dashboard auto-refresh):
+- <webapp-url>?action=dashboard-data
+
+Ops status update endpoint (OFFICER/SPONSOR only):
+- <webapp-url>?action=update-status&orderNumber=TMP-20260513-12345&newStatus=Under+Review
+
+Ops dashboard role behavior:
+- MEMBER: can view all queues; no status update controls shown.
+- OFFICER / SPONSOR: can view all queues and advance order status via dropdown.
+- Role is read from the `Role` column in the ClubRoster sheet (MEMBER, OFFICER, SPONSOR).
+- `updateOrderStatus` is also gated server-side to OFFICER/SPONSOR — MEMBERs cannot call the update endpoint directly.
+
 ## 5) Connect to Google Sites
 1. Embed product pages and Square payment links.
 2. Add a status-check page with order number + receipt code input.
 3. Connect status page with Embed URL: <webapp-url>?action=checker.
   - Do not embed <webapp-url>?action=status directly for end users because it returns JSON.
+4. Add an ops dashboard page restricted to DECA members (see GOOGLE_SITES_BUILD.md Section 10).
+  - Embed URL: <webapp-url>?action=dashboard
+  - Restrict page access to DECA members/officers/sponsors only via Google Sites page permissions.
 4. Build the full Google Site using the page blueprint and publish checklist in integration/docs/GOOGLE_SITES_BUILD.md.
 
 Google Site build guide:

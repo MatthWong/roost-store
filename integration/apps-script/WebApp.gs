@@ -92,6 +92,39 @@ function doGet(e) {
       return jsonResponse_(200, getOrderStatusDebugSnapshot(debugReceiptCode, debugOrderNumber, 25));
     }
 
+    if (action === 'dashboard') {
+      assertAuthorizedOpsUser_();
+      var dashboardData = getDashboardOrders();
+      var userRole = getUserRole_();
+      var template = HtmlService.createTemplateFromFile('Dashboard');
+      template.initialDataJson = JSON.stringify(dashboardData);
+      template.userRole = userRole || 'MEMBER';
+      template.webAppUrl = ScriptApp.getService().getUrl();
+      return template.evaluate()
+        .setTitle('Roost Store — Ops Dashboard')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
+    if (action === 'dashboard-data') {
+      assertAuthorizedOpsUser_();
+      var role = getUserRole_();
+      return jsonResponse_(200, {
+        orders: getDashboardOrders(),
+        userRole: role || 'MEMBER'
+      });
+    }
+
+    if (action === 'update-status') {
+      assertOfficerOrSponsor_();
+      var updateOrderNumber = String((e.parameter.orderNumber || '')).trim();
+      var updateNewStatus = String((e.parameter.newStatus || '')).trim();
+      if (!updateOrderNumber || !updateNewStatus) {
+        return jsonResponse_(400, { error: 'orderNumber and newStatus are required.' });
+      }
+      var result = updateOrderStatus(updateOrderNumber, updateNewStatus);
+      return jsonResponse_(200, result);
+    }
+
     return jsonResponse_(404, { error: 'Unknown action.' });
   } catch (error) {
     return jsonResponse_(500, { error: error.message });

@@ -40,10 +40,15 @@
 - [ ] Operations - PLACEHOLDER
 
 ## Current Execution Plan
-- **Current Stage**: CONSTRUCTION - Code Generation (Part 2 Generation Complete)
-- **Next Stage**: CONSTRUCTION - Build and Test
-- **Plan Status**: Awaiting user review/approval of generated code
+- **Current Stage**: INCEPTION - Requirements Analysis (Ops Dashboard Feature)
+- **Next Stage**: INCEPTION - Workflow Planning → CONSTRUCTION - Code Generation
+- **Plan Status**: Awaiting answers to requirement-verification-questions (dashboard feature)
 - **Detailed Plan Location**: aidlc-docs/inception/plans/execution-plan.md
+
+## Active Feature: Ops Order Dashboard
+- **Request**: Dashboard for ops users (ClubRoster) showing orders needing review, awaiting response, or ready for pickup
+- **Type**: New feature — Google Apps Script HtmlService web app page
+- **Stage**: CONSTRUCTION - Code Generation COMPLETE — awaiting deploy & test
 
 ## Completed Phases
 - Workspace Detection

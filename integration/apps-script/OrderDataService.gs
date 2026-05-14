@@ -6,6 +6,46 @@ function getSheetByNameOrThrow_(name) {
   return sheet;
 }
 
+var DASHBOARD_STATUSES = ['Submitted', 'Quote Provided', 'In Production', 'Ready for Pickup'];
+
+function getDashboardOrders() {
+  var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) {
+    return { needsReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+  }
+
+  var index = getHeaderIndexMap_(values[0]);
+
+  var queues = { needsReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+
+  for (var i = 1; i < values.length; i += 1) {
+    var row = values[i];
+    var status = String(row[index.Status] || '').trim();
+    if (DASHBOARD_STATUSES.indexOf(status) === -1) {
+      continue;
+    }
+
+    var order = {
+      orderNumber:      index.OrderNumber      !== undefined ? String(row[index.OrderNumber]      || '') : '',
+      orderType:        index.OrderType        !== undefined ? String(row[index.OrderType]        || '') : '',
+      customerName:     index.CustomerName     !== undefined ? String(row[index.CustomerName]     || '') : '',
+      status:           status,
+      updatedAt:        index.UpdatedAt        !== undefined ? row[index.UpdatedAt]               : '',
+      itemSummary:      index.ItemSummary      !== undefined ? String(row[index.ItemSummary]      || '') : '',
+      pickupWindow:     index.PickupWindow     !== undefined ? String(row[index.PickupWindow]     || '') : '',
+      duplicateWarning: index.DuplicateWarning !== undefined ? String(row[index.DuplicateWarning] || '') === 'true' : false
+    };
+
+    if (status === 'Submitted')           { queues.needsReview.push(order); }
+    else if (status === 'Quote Provided') { queues.awaitingResponse.push(order); }
+    else if (status === 'In Production')  { queues.inProduction.push(order); }
+    else if (status === 'Ready for Pickup') { queues.readyForPickup.push(order); }
+  }
+
+  return queues;
+}
+
 function getHeaderIndexMap_(headers) {
   var map = {};
   for (var i = 0; i < headers.length; i += 1) {

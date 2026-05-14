@@ -109,10 +109,34 @@ Checker note:
 3. Add pickup location details.
 4. Add DECA sponsor contact details.
 
+### 10. Ops Dashboard Page (Members Only)
+1. Create a new page: **Operations** (or **Team Dashboard**).
+2. Set page access: click the page settings gear -> **Restrict page** -> add only DECA member, officer, and sponsor Google accounts.
+   - Do not make this page publicly visible.
+3. Add section title: Order Queue.
+4. Add instruction text:
+   - Officers and sponsors can advance order status from this dashboard.
+   - Members can view orders but cannot change status.
+   - The dashboard auto-refreshes every 60 seconds.
+5. Add an Embed component:
+   - Google Sites: Insert -> Embed -> By URL.
+   - Embed URL: `<webapp-url>?action=dashboard`
+   - Recommended embed height: 700 px or taller to show all four queues without scrolling.
+6. Add a note linking to the Google Sheet for detailed order data.
+
+Dashboard queue reference:
+| Queue | Order Status |
+|---|---|
+| Needs Review | Submitted |
+| Awaiting Response | Quote Provided |
+| In Production | In Production |
+| Ready for Pickup | Ready for Pickup |
+
 ## Integration Checklist
 - Every product card has a working Square payment link.
 - Custom Orders button opens the Google Form.
 - Order Status page links to the status checker endpoint/page.
+- Ops Dashboard page is restricted to DECA members and embeds <webapp-url>?action=dashboard.
 - Navigation works on desktop and mobile.
 - Theme colors are consistently purple and gold.
 
@@ -128,3 +152,6 @@ Checker note:
 3. Confirm order ID and receipt code are generated.
 4. Confirm status lookup is accessible from Order Status page.
 5. Confirm at least one food and one merchandise Square checkout flow opens correctly.
+6. Confirm the Ops Dashboard page is visible to logged-in DECA members and restricted from public access.
+7. Confirm OFFICER/SPONSOR can advance an order status from the dashboard.
+8. Confirm MEMBER sees orders but no Update button.
