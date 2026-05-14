@@ -143,8 +143,8 @@
       }
 
       function checkStatus() {
-        var orderNumber = normalizeToken(document.getElementById('orderNumber').value);
-        var receiptCode = normalizeToken(document.getElementById('receiptCode').value);
+        var orderNumber = normalizeOrderNumber(document.getElementById('orderNumber').value);
+        var receiptCode = normalizeReceiptCode(document.getElementById('receiptCode').value);
         var result = document.getElementById('result');
 
         if (!orderNumber || !receiptCode) {
@@ -222,6 +222,14 @@
           .replace(/[\u200B-\u200D\uFEFF]/g, '')
           .trim()
           .toUpperCase();
+      }
+
+      function normalizeOrderNumber(value) {
+        return normalizeToken(value).replace(/[^A-Z0-9-]/g, '');
+      }
+
+      function normalizeReceiptCode(value) {
+        return normalizeToken(value).replace(/[^A-Z0-9]/g, '');
       }
     </script>
   </body>

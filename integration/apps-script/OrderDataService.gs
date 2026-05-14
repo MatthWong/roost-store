@@ -97,8 +97,8 @@ function getCustomerOrderStatus(orderNumber, receiptCode) {
   var permanentOrderNumberCol = index.PermanentOrderNumber;
   var temporaryOrderIdCol = index.TemporaryOrderID;
   var paymentLinkCol = index.PaymentLink;
-  var lookupValue = normalizeLookupToken_(orderNumber);
-  var lookupReceiptCode = normalizeLookupToken_(receiptCode);
+  var lookupValue = normalizeOrderNumberToken_(orderNumber);
+  var lookupReceiptCode = normalizeReceiptCodeToken_(receiptCode);
 
   if (
     orderNumberCol === undefined ||
@@ -111,10 +111,10 @@ function getCustomerOrderStatus(orderNumber, receiptCode) {
 
   for (var i = 1; i < values.length; i += 1) {
     var row = values[i];
-    var rowOrderNumber = normalizeLookupToken_(row[orderNumberCol]);
-    var rowTemporaryOrderId = temporaryOrderIdCol !== undefined ? normalizeLookupToken_(row[temporaryOrderIdCol]) : '';
-    var rowPermanentOrderNumber = permanentOrderNumberCol !== undefined ? normalizeLookupToken_(row[permanentOrderNumberCol]) : '';
-    var rowReceiptCode = normalizeLookupToken_(row[receiptCodeCol]);
+    var rowOrderNumber = normalizeOrderNumberToken_(row[orderNumberCol]);
+    var rowTemporaryOrderId = temporaryOrderIdCol !== undefined ? normalizeOrderNumberToken_(row[temporaryOrderIdCol]) : '';
+    var rowPermanentOrderNumber = permanentOrderNumberCol !== undefined ? normalizeOrderNumberToken_(row[permanentOrderNumberCol]) : '';
+    var rowReceiptCode = normalizeReceiptCodeToken_(row[receiptCodeCol]);
     var orderMatches =
       rowOrderNumber === lookupValue ||
       rowTemporaryOrderId === lookupValue ||
@@ -147,6 +147,14 @@ function normalizeLookupToken_(value) {
     .toUpperCase();
 }
 
+function normalizeOrderNumberToken_(value) {
+  return normalizeLookupToken_(value).replace(/[^A-Z0-9-]/g, '');
+}
+
+function normalizeReceiptCodeToken_(value) {
+  return normalizeLookupToken_(value).replace(/[^A-Z0-9]/g, '');
+}
+
 function getOrderStatusDebugSnapshot(receiptCode, orderNumber, limit) {
   var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
   var values = sheet.getDataRange().getValues();
@@ -155,8 +163,8 @@ function getOrderStatusDebugSnapshot(receiptCode, orderNumber, limit) {
       input: {
         orderNumber: String(orderNumber || ''),
         receiptCode: String(receiptCode || ''),
-        normalizedOrderNumber: normalizeLookupToken_(orderNumber),
-        normalizedReceiptCode: normalizeLookupToken_(receiptCode)
+        normalizedOrderNumber: normalizeOrderNumberToken_(orderNumber),
+        normalizedReceiptCode: normalizeReceiptCodeToken_(receiptCode)
       },
       totalRows: 0,
       candidates: []
@@ -171,17 +179,17 @@ function getOrderStatusDebugSnapshot(receiptCode, orderNumber, limit) {
   var receiptCodeCol = index.ReceiptCode;
   var statusCol = index.Status;
 
-  var lookupOrder = normalizeLookupToken_(orderNumber);
-  var lookupReceipt = normalizeLookupToken_(receiptCode);
+  var lookupOrder = normalizeOrderNumberToken_(orderNumber);
+  var lookupReceipt = normalizeReceiptCodeToken_(receiptCode);
   var maxResults = Number(limit || 25);
   var candidates = [];
 
   for (var rowIdx = 1; rowIdx < values.length; rowIdx += 1) {
     var row = values[rowIdx];
-    var rowOrder = orderNumberCol !== undefined ? normalizeLookupToken_(row[orderNumberCol]) : '';
-    var rowTemp = temporaryOrderIdCol !== undefined ? normalizeLookupToken_(row[temporaryOrderIdCol]) : '';
-    var rowPerm = permanentOrderNumberCol !== undefined ? normalizeLookupToken_(row[permanentOrderNumberCol]) : '';
-    var rowReceipt = receiptCodeCol !== undefined ? normalizeLookupToken_(row[receiptCodeCol]) : '';
+    var rowOrder = orderNumberCol !== undefined ? normalizeOrderNumberToken_(row[orderNumberCol]) : '';
+    var rowTemp = temporaryOrderIdCol !== undefined ? normalizeOrderNumberToken_(row[temporaryOrderIdCol]) : '';
+    var rowPerm = permanentOrderNumberCol !== undefined ? normalizeOrderNumberToken_(row[permanentOrderNumberCol]) : '';
+    var rowReceipt = receiptCodeCol !== undefined ? normalizeReceiptCodeToken_(row[receiptCodeCol]) : '';
 
     var orderMatch = lookupOrder && (rowOrder === lookupOrder || rowTemp === lookupOrder || rowPerm === lookupOrder);
     var receiptMatch = lookupReceipt && rowReceipt === lookupReceipt;
