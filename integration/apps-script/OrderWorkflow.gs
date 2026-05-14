@@ -8,6 +8,10 @@ function onFormSubmit(e) {
   var receiptCode = createReceiptCode_();
   var now = new Date();
   var formData = normalizeFormData_(e && e.namedValues ? e.namedValues : {});
+  var resolvedCustomerEmail = getCustomerEmail_(formData);
+  if (resolvedCustomerEmail && !getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail'])) {
+    formData['School Email'] = resolvedCustomerEmail;
+  }
   var orderType = detectOrderType_(formData);
   var isCustom = isCustomOrderType_(orderType);
 
@@ -37,6 +41,14 @@ function onFormSubmit(e) {
   if (isCustom) {
     addOrderItemRows_(orderNumber, extractOrderItems_(formData));
   }
+
+  sendSubmissionConfirmationEmail_(formData, {
+    orderNumber: orderNumber,
+    receiptCode: receiptCode,
+    orderType: orderType,
+    status: status,
+    pickupWindow: pickupWindow
+  });
 
   return {
     orderNumber: orderNumber,
@@ -237,7 +249,7 @@ function shouldRequireQuote_(orderType) {
 
 function validateFormSubmission_(formData, orderType) {
   var name = getFormValue_(formData, ['Full Name', 'Customer Name', 'CustomerName']);
-  var email = getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail']);
+  var email = getCustomerEmail_(formData);
   if (!name || !email) {
     throw new Error('Missing required customer name or email.');
   }
@@ -355,7 +367,7 @@ function parseLegacyItemSummary_(value) {
 }
 
 function detectDuplicateCustomOrderSignature_(formData) {
-  var email = getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail']).toLowerCase();
+  var email = getCustomerEmail_(formData).toLowerCase();
   var orderType = detectOrderType_(formData);
   var summary = buildItemSummary_(formData, orderType);
   var recentOrders = getAllRowsAsObjects_(AppConfig.sheets.orders).slice(-25);
@@ -455,4 +467,92 @@ function getDesignImageUploadValue_(formData, orderType) {
   }
 
   return getFormValue_(formData, keys);
+}
+
+function sendSubmissionConfirmationEmail_(formData, orderData) {
+  var recipients = getSubmissionEmailRecipients_(formData);
+  if (!recipients.to) {
+    return;
+  }
+
+  var name = getFormValue_(formData, ['Full Name', 'Customer Name', 'CustomerName']) || 'Customer';
+  var checkerUrl = getStatusCheckerUrl_();
+
+  var subject = 'Roost Store Order Confirmation: ' + orderData.orderNumber;
+  var lines = [
+    'Hi ' + name + ',',
+    '',
+    'Thanks for your Roost Store order submission.',
+    '',
+    'Order number: ' + orderData.orderNumber,
+    'Receipt code: ' + orderData.receiptCode,
+    'Order type: ' + (orderData.orderType || 'N/A'),
+    'Current status: ' + (orderData.status || 'Submitted')
+  ];
+
+  if (orderData.pickupWindow) {
+    lines.push('Pickup window: ' + orderData.pickupWindow);
+  }
+
+  if (checkerUrl) {
+    lines.push('');
+    lines.push('Check status here: ' + checkerUrl);
+    lines.push('Use your order number and receipt code shown above.');
+  }
+
+  lines.push('');
+  lines.push('If you need help, reply to this email or contact the store team.');
+
+  try {
+    MailApp.sendEmail({
+      to: recipients.to,
+      cc: recipients.cc,
+      subject: subject,
+      body: lines.join('\n')
+    });
+  } catch (error) {
+    Logger.log('Submission email failed for ' + recipients.to + ': ' + error.message);
+  }
+}
+
+function getStatusCheckerUrl_() {
+  var value = PropertiesService.getScriptProperties().getProperty(AppConfig.statusCheckerUrlProperty);
+  return String(value || '').trim();
+}
+
+function getCustomerEmail_(formData) {
+  var schoolEmail = getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail']);
+  if (schoolEmail) {
+    return schoolEmail;
+  }
+  return getLoggedInUserEmail_(formData);
+}
+
+function getLoggedInUserEmail_(formData) {
+  var respondentEmail = getFormValue_(formData, ['Email Address', 'Respondent Email']);
+  if (respondentEmail) {
+    return respondentEmail;
+  }
+
+  try {
+    return String(Session.getActiveUser().getEmail() || '').trim();
+  } catch (error) {
+    return '';
+  }
+}
+
+function getSubmissionEmailRecipients_(formData) {
+  var schoolEmail = getFormValue_(formData, ['School Email', 'Customer Email', 'CustomerEmail']);
+  var loggedInEmail = getLoggedInUserEmail_(formData);
+  var primary = schoolEmail || loggedInEmail;
+  var cc = '';
+
+  if (schoolEmail && loggedInEmail && schoolEmail.toLowerCase() !== loggedInEmail.toLowerCase()) {
+    cc = loggedInEmail;
+  }
+
+  return {
+    to: primary,
+    cc: cc
+  };
 }

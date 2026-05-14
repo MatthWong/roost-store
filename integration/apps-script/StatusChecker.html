@@ -150,7 +150,15 @@
 
         fetch(url)
           .then(function(resp) {
-            return resp.json();
+            return resp.text().then(function(raw) {
+              var body = null;
+              try {
+                body = JSON.parse(raw);
+              } catch (error) {
+                throw new Error('Status service returned a non-JSON response. Check Web App deployment access and URL.');
+              }
+              return body;
+            });
           })
           .then(function(body) {
             if (!body || body.statusCode !== 200 || !body.data) {
@@ -161,8 +169,11 @@
 
             renderSuccess(body.data);
           })
-          .catch(function() {
-            renderError('Unable to check status right now. Please try again.');
+          .catch(function(error) {
+            var message = (error && error.message)
+              ? error.message
+              : 'Unable to check status right now. Please try again.';
+            renderError(message);
           });
       }
 

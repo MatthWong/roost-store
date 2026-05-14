@@ -97,6 +97,7 @@ function getCustomerOrderStatus(orderNumber, receiptCode) {
   var permanentOrderNumberCol = index.PermanentOrderNumber;
   var temporaryOrderIdCol = index.TemporaryOrderID;
   var paymentLinkCol = index.PaymentLink;
+  var lookupValue = String(orderNumber || '').trim();
 
   if (
     orderNumberCol === undefined ||
@@ -110,13 +111,20 @@ function getCustomerOrderStatus(orderNumber, receiptCode) {
   for (var i = 1; i < values.length; i += 1) {
     var row = values[i];
     var rowOrderNumber = String(row[orderNumberCol] || '').trim();
+    var rowTemporaryOrderId = temporaryOrderIdCol !== undefined ? String(row[temporaryOrderIdCol] || '').trim() : '';
+    var rowPermanentOrderNumber = permanentOrderNumberCol !== undefined ? String(row[permanentOrderNumberCol] || '').trim() : '';
     var rowReceiptCode = String(row[receiptCodeCol] || '').trim();
-    if (rowOrderNumber === String(orderNumber).trim() && rowReceiptCode === String(receiptCode).trim()) {
-      var lineItems = getOrderItemsByOrderNumber_(rowOrderNumber);
+    var orderMatches =
+      rowOrderNumber === lookupValue ||
+      rowTemporaryOrderId === lookupValue ||
+      rowPermanentOrderNumber === lookupValue;
+
+    if (orderMatches && rowReceiptCode === String(receiptCode).trim()) {
+      var lineItems = getOrderItemsByKnownNumbers_(rowOrderNumber, rowTemporaryOrderId, rowPermanentOrderNumber);
       return {
         orderNumber: rowOrderNumber,
-        temporaryOrderId: temporaryOrderIdCol !== undefined ? String(row[temporaryOrderIdCol] || '') : '',
-        permanentOrderNumber: permanentOrderNumberCol !== undefined ? String(row[permanentOrderNumberCol] || '') : '',
+        temporaryOrderId: rowTemporaryOrderId,
+        permanentOrderNumber: rowPermanentOrderNumber,
         orderType: orderTypeCol !== undefined ? String(row[orderTypeCol] || '') : '',
         quoteRequired: quoteRequiredCol !== undefined ? String(row[quoteRequiredCol] || '').toLowerCase() === 'true' : false,
         status: String(row[statusCol] || ''),
@@ -129,6 +137,22 @@ function getCustomerOrderStatus(orderNumber, receiptCode) {
   }
 
   return null;
+}
+
+function getOrderItemsByKnownNumbers_(currentOrderNumber, temporaryOrderId, permanentOrderNumber) {
+  var candidates = [currentOrderNumber, temporaryOrderId, permanentOrderNumber]
+    .map(function(value) { return String(value || '').trim(); })
+    .filter(function(value, idx, arr) { return value && arr.indexOf(value) === idx; });
+
+  if (!candidates.length) {
+    return [];
+  }
+
+  var all = [];
+  candidates.forEach(function(candidate) {
+    all = all.concat(getOrderItemsByOrderNumber_(candidate));
+  });
+  return all;
 }
 
 function addOrderItemRows_(orderNumber, orderItems) {

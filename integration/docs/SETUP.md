@@ -71,6 +71,7 @@ Important:
 4. In Script Properties, set:
 - INTEGRATION_MODE=PAYMENT_LINKS
 - ALLOWED_SCHOOL_DOMAIN=<your school domain>
+- STATUS_CHECKER_URL=<webapp-url>?action=checker
 
 Optional now, required later for Square API mode:
 - SQUARE_PERSONAL_ACCESS_TOKEN=<token>
@@ -94,6 +95,17 @@ Status endpoint example:
 
 Checker page URL (recommended for Google Sites embed):
 - <webapp-url>?action=checker
+
+Submission email behavior:
+- On each successful form submission, Apps Script sends a confirmation email to the submitter.
+- The email includes Order Number, Receipt Code, current status, and `STATUS_CHECKER_URL` (if configured).
+- Primary recipient is `School Email`.
+- If `School Email` is blank, Apps Script falls back to the logged-in respondent email (`Email Address` from Google Forms, if available).
+- If `School Email` and logged-in respondent email differ, Apps Script sends to `School Email` and CCs the logged-in respondent email.
+
+Status checker behavior:
+- Customers can check status using either a temporary (`TMP-...`) or permanent (`RS-...`) order number with the matching receipt code.
+- After Apps Script changes, redeploy the web app so the embedded checker uses the latest status lookup logic.
 
 Note on order IDs:
 - New custom orders may start with a temporary ID format (`TMP-...`) before a permanent order number (`RS-...`) is assigned.
