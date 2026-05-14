@@ -436,6 +436,164 @@ function generateDeferredPaymentLink_(orderNumber) {
   return base + encodeURIComponent(orderNumber) + '-' + Utilities.getUuid().slice(0, 6);
 }
 
+// ─── Shopping Cart Order Submission ──────────────────────────────────────────
+// Called via google.script.run from Cart.html.
+// payload: {
+//   customerName: string,
+//   customerEmail: string,
+//   items: [{ sku, name, quantity, unitPriceCents, paymentLink }]
+// }
+function submitCartOrder(payload) {
+  // --- Validate inputs ---
+  var name  = String((payload && payload.customerName)  || '').trim();
+  var email = String((payload && payload.customerEmail) || '').trim();
+  var items = (payload && Array.isArray(payload.items)) ? payload.items : [];
+
+  if (!name)  { throw new Error('Full name is required.'); }
+  if (!email || email.indexOf('@') === -1) { throw new Error('A valid school email is required.'); }
+  if (!items.length) { throw new Error('Your cart is empty.'); }
+
+  for (var v = 0; v < items.length; v += 1) {
+    if (!Number.isFinite(items[v].quantity) || items[v].quantity < 1) {
+      throw new Error('Invalid quantity for "' + (items[v].name || 'item') + '".');
+    }
+  }
+
+  // --- Server-side inventory check ---
+  var products = getActiveProducts();
+  var productMap = {};
+  products.forEach(function(p) { productMap[p.sku || p.name] = p; });
+
+  for (var k = 0; k < items.length; k += 1) {
+    var key = items[k].sku || items[k].name;
+    var product = productMap[key];
+    if (product && product.inventoryCount !== null && product.inventoryCount <= 0) {
+      throw new Error('"' + items[k].name + '" is out of stock.');
+    }
+  }
+
+  // --- Generate identifiers ---
+  var orderNumber = createOrderNumber_();
+  var receiptCode = createReceiptCode_();
+  var now = new Date();
+
+  // --- Build item summary ---
+  var itemSummary = items.map(function(item) {
+    return item.quantity + '\u00d7 ' + item.name;
+  }).join(', ');
+
+  // --- Write Orders row ---
+  var ordersSheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
+  var ordersHeaders = ordersSheet.getDataRange().getValues()[0];
+  var ordersIndex = getHeaderIndexMap_(ordersHeaders);
+
+  var newOrderRow = new Array(ordersHeaders.length).fill('');
+  function setOrderCell(header, value) {
+    if (ordersIndex[header] !== undefined) { newOrderRow[ordersIndex[header]] = value; }
+  }
+  setOrderCell('OrderNumber',         orderNumber);
+  setOrderCell('ReceiptCode',         receiptCode);
+  setOrderCell('TemporaryOrderID',    orderNumber);
+  setOrderCell('PermanentOrderNumber','');
+  setOrderCell('Status',              AppConfig.orderStatus.pending);
+  setOrderCell('OrderType',           'Cart Order');
+  setOrderCell('ItemSummary',         itemSummary);
+  setOrderCell('UpdatedAt',           now);
+  setOrderCell('QuoteRequired',       false);
+  // Store customer info in common form-response column names if they exist
+  setOrderCell('Full Name',           name);
+  setOrderCell('School Email',        email);
+  ordersSheet.appendRow(newOrderRow);
+
+  // --- Write OrderItems rows ---
+  var orderItemsSheet = getSheetByNameOrThrow_(AppConfig.sheets.orderItems);
+  var orderItemsHeaders = orderItemsSheet.getDataRange().getValues()[0];
+  var orderItemsIndex = getHeaderIndexMap_(orderItemsHeaders);
+
+  var itemRows = items.map(function(item) {
+    var row = new Array(orderItemsHeaders.length).fill('');
+    function setItemCell(header, value) {
+      if (orderItemsIndex[header] !== undefined) { row[orderItemsIndex[header]] = value; }
+    }
+    setItemCell('OrderItemID',    Utilities.getUuid());
+    setItemCell('OrderNumber',    orderNumber);
+    setItemCell('ApparelType',    item.sku || '');   // reuse column for SKU
+    setItemCell('ApparelSize',    item.name || '');  // reuse column for product name
+    setItemCell('Quantity',       item.quantity);
+    setItemCell('UnitPriceCents', item.unitPriceCents || 0);
+    setItemCell('CreatedAt',      now);
+    return row;
+  });
+  if (itemRows.length) {
+    orderItemsSheet.getRange(orderItemsSheet.getLastRow() + 1, 1, itemRows.length, orderItemsHeaders.length)
+      .setValues(itemRows);
+  }
+
+  // --- Send confirmation email ---
+  sendCartConfirmationEmail_({
+    customerName:  name,
+    customerEmail: email,
+    orderNumber:   orderNumber,
+    receiptCode:   receiptCode,
+    items:         items
+  });
+
+  return {
+    orderNumber: orderNumber,
+    receiptCode: receiptCode,
+    items: items.map(function(item) {
+      return { name: item.name, quantity: item.quantity, paymentLink: item.paymentLink || '' };
+    })
+  };
+}
+
+function sendCartConfirmationEmail_(data) {
+  var checkerUrl = getStatusCheckerUrl_();
+  var subject = 'Roost Store Order Confirmation: ' + data.orderNumber;
+
+  var lines = [
+    'Hi ' + data.customerName + ',',
+    '',
+    'Thank you for your Roost Store order! Here\'s your summary:',
+    '',
+    'Order Number : ' + data.orderNumber,
+    'Receipt Code : ' + data.receiptCode,
+    ''
+  ];
+
+  lines.push('Items:');
+  data.items.forEach(function(item) {
+    var price = item.unitPriceCents ? ' — $' + (item.unitPriceCents / 100).toFixed(2) + ' each' : '';
+    lines.push('  ' + item.quantity + '\u00d7 ' + item.name + price);
+  });
+
+  lines.push('');
+  lines.push('Complete your payment below (one link per item):');
+  data.items.forEach(function(item) {
+    if (item.paymentLink) {
+      lines.push('  ' + item.name + ': ' + item.paymentLink);
+    }
+  });
+
+  if (checkerUrl) {
+    var statusLink = checkerUrl +
+      '?action=checker&orderNumber=' + encodeURIComponent(data.orderNumber) +
+      '&receiptCode=' + encodeURIComponent(data.receiptCode);
+    lines.push('');
+    lines.push('Track your order status here:');
+    lines.push(statusLink);
+  }
+
+  lines.push('');
+  lines.push('If you have questions, reply to this email or contact the store team.');
+
+  try {
+    MailApp.sendEmail({ to: data.customerEmail, subject: subject, body: lines.join('\n') });
+  } catch (err) {
+    Logger.log('Cart confirmation email failed for ' + data.customerEmail + ': ' + err.message);
+  }
+}
+
 function testStatusTransitionRules() {
   return {
     submittedToUnderReview: isAllowedStatusTransition_(AppConfig.orderStatus.submitted, AppConfig.orderStatus.underReview),

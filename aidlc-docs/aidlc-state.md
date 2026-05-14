@@ -4,7 +4,7 @@
 - **Project Name**: Roost Store - DECA School Store
 - **Project Type**: Greenfield
 - **Start Date**: 2026-05-10T00:00:00Z
-- **Current Stage**: CONSTRUCTION - Code Generation (Execution Complete, Awaiting Review Approval)
+- **Current Stage**: CONSTRUCTION - Code Generation (Shopping Cart — COMPLETE, awaiting review)
 
 ## Workspace State
 - **Existing Code**: No
@@ -45,9 +45,11 @@
 - **Plan Status**: Awaiting answers to requirement-verification-questions (dashboard feature)
 - **Detailed Plan Location**: aidlc-docs/inception/plans/execution-plan.md
 
-## Active Feature: Ops Order Dashboard
-- **Request**: Dashboard for ops users (ClubRoster) showing orders needing review, awaiting response, or ready for pickup
-- **Type**: New feature — Google Apps Script HtmlService web app page
+## Active Feature: Shopping Cart
+- **Request**: Shopping cart page embedded in Google Sites; standard products only; multi-item with quantity selectors; creates order in Orders sheet + sends confirmation email with payment links
+- **Type**: New feature — Google Apps Script HtmlService page + backend functions
+- **Plan**: aidlc-docs/inception/plans/shopping-cart-execution-plan.md
+- **Requirements**: aidlc-docs/inception/requirements/shopping-cart-requirements.md
 - **Stage**: CONSTRUCTION - Code Generation COMPLETE — awaiting deploy & test
 
 ## Completed Phases

@@ -116,6 +116,20 @@ Checker note:
    - The page still exists at its URL but won't appear in the nav bar.
 3. **Note on access control**: New Google Sites does not support per-page access restrictions. Access control is enforced by the Apps Script web app itself — anyone who navigates to the page will see an error from the dashboard embed if they are not in the ClubRoster sheet with `IsActive = true`. No order data is ever exposed to unauthorized users.
    - If your school uses Google Workspace and you want to fully hide the page, publish the *entire site* to "Only people in [your domain]" (Publish settings → Who can view → Anyone in your organization). This restricts the whole site to signed-in school accounts.
+
+### 11. Shopping Cart Page
+1. Create a new page: **Shop** (or **Order Online**).
+2. In the page editor, click **Insert** → **Embed** → **By URL**.
+3. Embed URL: `<webapp-url>?action=cart`
+4. Recommended embed height: 700 px or taller so the product grid and cart panel are visible without excessive scrolling.
+5. The cart page automatically loads products from the **Products** sheet. To add or update products, edit the sheet — no site republishing needed.
+6. Optional: add an `ImageUrl` column to the Products sheet with direct image URLs to show product photos in the cart.
+7. The cart is public — no sign-in required. Customers enter their name and school email at checkout.
+8. After a successful order, the customer receives a confirmation email with:
+   - Order Number + Receipt Code
+   - Itemized list with quantities and prices
+   - Square payment link per product
+   - Pre-filled status tracker link
 4. Add section title: Order Queue.
 5. Add instruction text:
    - Officers and sponsors can advance order status from this dashboard.
@@ -138,6 +152,7 @@ Dashboard queue reference:
 - Every product card has a working Square payment link.
 - Custom Orders button opens the Google Form.
 - Order Status page links to the status checker endpoint/page.
+- Shopping Cart page embeds <webapp-url>?action=cart and loads products from the Products sheet.
 - Ops Dashboard page is restricted to DECA members and embeds <webapp-url>?action=dashboard.
 - Navigation works on desktop and mobile.
 - Theme colors are consistently purple and gold.

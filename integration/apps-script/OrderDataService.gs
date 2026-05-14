@@ -6,6 +6,31 @@ function getSheetByNameOrThrow_(name) {
   return sheet;
 }
 
+// Returns active products for the shopping cart.
+// Reads Name, Description, PriceCents, PaymentLink, ImageUrl, InventoryCount, SKU, ProductID.
+function getActiveProducts() {
+  var rows = getAllRowsAsObjects_(AppConfig.sheets.products);
+  return rows
+    .filter(function(row) {
+      var isActive = String(row.IsActive || '').trim().toLowerCase();
+      return isActive !== 'false';
+    })
+    .map(function(row) {
+      return {
+        productId:      String(row.ProductID      || '').trim(),
+        sku:            String(row.SKU             || '').trim(),
+        name:           String(row.Name            || '').trim(),
+        description:    String(row.Description     || '').trim(),
+        priceCents:     Number(row.PriceCents      || 0),
+        paymentLink:    String(row.PaymentLink      || '').trim(),
+        imageUrl:       String(row.ImageUrl        || '').trim(),
+        inventoryCount: row.InventoryCount !== '' && row.InventoryCount !== undefined
+                          ? Number(row.InventoryCount)
+                          : null  // null = unlimited / untracked
+      };
+    });
+}
+
 var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'In Production', 'Ready for Pickup'];
 
 function getDashboardOrders() {

@@ -70,6 +70,7 @@ Important:
 3. Add HTML files from integration/apps-script/:
    - `StatusChecker.html`
    - `Dashboard.html`
+   - `Cart.html`
 4. In Script Properties, set:
 - INTEGRATION_MODE=PAYMENT_LINKS
 - ALLOWED_SCHOOL_DOMAIN=<your school domain>
@@ -120,6 +121,11 @@ Ops dashboard URL (embed in members-only Google Sites page):
 
 Ops dashboard data endpoint (JSON, used by dashboard auto-refresh):
 - <webapp-url>?action=dashboard-data
+
+Shopping cart URL (embed in Google Sites storefront page):
+- <webapp-url>?action=cart
+
+Note: The cart page reads from the Products sheet. Add an optional `ImageUrl` column to Products to show product images in the cart.
 
 Ops status update endpoint (OFFICER/SPONSOR only):
 - <webapp-url>?action=update-status&orderNumber=TMP-20260513-12345&newStatus=Under+Review
