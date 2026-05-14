@@ -91,6 +91,21 @@
         color: #b00020;
       }
 
+      .debug-info {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: #f0f0f5;
+        border-radius: 6px;
+        font-size: 11px;
+        color: var(--muted);
+        font-family: monospace;
+        word-break: break-all;
+      }
+
+      .debug-info b {
+        color: var(--text);
+      }
+
       .ok {
         color: #1f1f24;
       }
@@ -123,6 +138,7 @@
       </div>
 
       <script id="initialPayload" type="application/json"><?!= initialPayloadJson ?></script>
+      <script>var WEB_APP_URL = '<?!= webAppUrl ?>';</script>
     </div>
 
     <script>
@@ -145,32 +161,13 @@
       function checkStatus() {
         var orderNumber = normalizeOrderNumber(document.getElementById('orderNumber').value);
         var receiptCode = normalizeReceiptCode(document.getElementById('receiptCode').value);
-        var result = document.getElementById('result');
 
         if (!orderNumber || !receiptCode) {
           renderError('Please enter both order number and receipt code.');
           return;
         }
 
-        result.style.display = 'block';
-        result.innerHTML = 'Checking...';
-
-        if (window.google && google.script && google.script.run) {
-          google.script.run
-            .withSuccessHandler(function(body) {
-              handleStatusPayload(body);
-            })
-            .withFailureHandler(function(error) {
-              var message = (error && error.message)
-                ? error.message
-                : 'Unable to check status right now. Please try again.';
-              renderError(message);
-            })
-            .getOrderStatusForChecker(orderNumber, receiptCode);
-          return;
-        }
-
-        var base = window.location.origin + window.location.pathname;
+        var base = WEB_APP_URL || (window.location.origin + window.location.pathname);
         window.location.href =
           base +
           '?action=checker&orderNumber=' +
@@ -179,20 +176,39 @@
           encodeURIComponent(receiptCode);
       }
 
+      function getUrlParam(name) {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          return params.get(name) || '';
+        } catch (e) {
+          return '';
+        }
+      }
+
       function handleStatusPayload(body) {
         if (!body || body.statusCode !== 200 || !body.data) {
           var err = (body && body.data && body.data.error) ? body.data.error : 'Order not found.';
-          renderError(err);
+          var statusCode = body ? body.statusCode : null;
+          renderError(err, statusCode);
           return;
         }
 
         renderSuccess(body.data);
       }
 
-      function renderError(message) {
+      function renderError(message, statusCode) {
         var result = document.getElementById('result');
+        var sentOrder = getUrlParam('orderNumber');
+        var sentReceipt = getUrlParam('receiptCode');
+        var debugHtml = '';
+        if (sentOrder || sentReceipt) {
+          debugHtml = '<div class="debug-info">' +
+            '<b>Looked up:</b> ' + escapeHtml(sentOrder || '(none)') + ' / ' + escapeHtml(sentReceipt || '(none)') +
+            (statusCode != null ? ' &nbsp;·&nbsp; <b>HTTP:</b> ' + escapeHtml(String(statusCode)) : '') +
+            '</div>';
+        }
         result.style.display = 'block';
-        result.innerHTML = '<div class="error">' + escapeHtml(message) + '</div>';
+        result.innerHTML = '<div class="error">' + escapeHtml(message) + '</div>' + debugHtml;
       }
 
       function renderSuccess(data) {

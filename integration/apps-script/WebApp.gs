@@ -35,6 +35,7 @@ function doGet(e) {
       template.initialOrderNumber = checkerOrderNumber;
       template.initialReceiptCode = checkerReceiptCode;
       template.initialPayloadJson = JSON.stringify(checkerPayload);
+      template.webAppUrl = ScriptApp.getService().getUrl();
       return template.evaluate().setTitle('Order Status Checker');
     }
 
