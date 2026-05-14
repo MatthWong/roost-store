@@ -428,25 +428,15 @@
             btn.disabled = true;
             btn.textContent = 'Saving…';
             google.script.run
-              .withSuccessHandler(function() {
+              .withSuccessHandler(function(result) {
                 showToast('Updated ' + orderNumber + ' → ' + newStatus);
-                document.getElementById('refresh-status').textContent = 'Refreshing…';
-                google.script.run
-                  .withSuccessHandler(function(result) {
-                    if (result) {
-                      USER_ROLE = result.userRole || USER_ROLE;
-                      renderAll(result.orders || {});
-                    } else {
-                      btn.disabled = false;
-                      btn.textContent = 'Update';
-                    }
-                  })
-                  .withFailureHandler(function() {
-                    document.getElementById('refresh-status').textContent = 'Refresh failed — retrying…';
-                    btn.disabled = false;
-                    btn.textContent = 'Update';
-                  })
-                  .getDashboardDataForUI();
+                if (result) {
+                  USER_ROLE = result.userRole || USER_ROLE;
+                  renderAll(result.orders || {});
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = 'Update';
+                }
               })
               .withFailureHandler(function(err) {
                 var msg = (err && err.message) ? err.message : 'Update failed.';
@@ -455,7 +445,7 @@
                 btn.disabled = false;
                 btn.textContent = 'Update';
               })
-              .updateOrderStatus(orderNumber, newStatus);
+              .updateStatusAndGetDashboard(orderNumber, newStatus);
           });
         });
       }

@@ -167,6 +167,16 @@ function getDashboardDataForUI() {
   };
 }
 
+// Updates a status and returns fresh dashboard data in one round-trip.
+// Avoids nested google.script.run calls and read-after-write timing issues.
+function updateStatusAndGetDashboard(orderNumber, newStatus) {
+  updateOrderStatus(orderNumber, newStatus); // assertOfficerOrSponsor_ called inside
+  return {
+    orders: getDashboardOrders(),
+    userRole: getUserRole_() || 'MEMBER'
+  };
+}
+
 function getOrderStatusForChecker(orderNumber, receiptCode) {
   try {
     var cleanOrderNumber = String(orderNumber || '').trim();
