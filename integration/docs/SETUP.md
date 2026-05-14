@@ -10,13 +10,29 @@
 ## 1) Prepare Google Assets
 1. Create a Google Form for custom orders and link responses to this spreadsheet.
   - Use exact field text and section logic in integration/docs/GOOGLE_FORMS_SETUP_TEXT.md.
-  - Important: Google Forms usually creates a tab named `Form Responses 1`. Rename that tab to `Orders` so Apps Script writes to the correct sheet.
-2. Create a Google Sheet and add tabs/headers described in ../config/sheet-schema.md.
+  - Important: Google Forms usually creates a tab named `Form Responses 1`.
+  - If an `Orders` tab already exists, delete or rename the old `Orders` tab first, then rename `Form Responses 1` to `Orders`.
+2. Create remaining tabs/headers described in ../config/sheet-schema.md (except `Orders`, which is now the form response tab).
 3. Fill StoreHours and ClubRoster.
 4. Add Products and PaymentLinks rows.
 5. Ensure OrderItems tab exists with headers:
 - OrderItemID, OrderNumber, ApparelType, ApparelSize, Quantity, CreatedAt
-6. Ensure custom form question titles map to these expected fields where possible:
+6. In the `Orders` tab, append these operational headers (to the right of form response columns if needed):
+- OrderNumber
+- TemporaryOrderID
+- PermanentOrderNumber
+- ReceiptCode
+- Status
+- QuoteRequired
+- ItemSummary
+- PickupWindow
+- DuplicateWarning
+- ImageFileURL
+- ImageFileName
+- ImageUploadedAt
+- PaymentLink
+- UpdatedAt
+7. Ensure custom form question titles map to these expected fields where possible:
 - Order Type
 - Full Name / Customer Name
 - School Email / Customer Email
