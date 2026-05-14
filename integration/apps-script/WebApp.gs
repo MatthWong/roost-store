@@ -3,9 +3,39 @@ function doGet(e) {
     var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : 'status';
 
     if (action === 'checker') {
-      return HtmlService
-        .createHtmlOutputFromFile('StatusChecker')
-        .setTitle('Order Status Checker');
+      var checkerOrderNumber = String((e.parameter.orderNumber || '')).trim();
+      var checkerReceiptCode = String((e.parameter.receiptCode || '')).trim();
+      var checkerPayload = null;
+
+      if (checkerOrderNumber || checkerReceiptCode) {
+        if (!checkerOrderNumber || !checkerReceiptCode) {
+          checkerPayload = { statusCode: 400, data: { error: 'Please enter both order number and receipt code.' } };
+        } else {
+          var checkerStatus = getCustomerOrderStatus(checkerOrderNumber, checkerReceiptCode);
+          if (!checkerStatus) {
+            checkerPayload = { statusCode: 404, data: { error: 'No matching order found.' } };
+          } else {
+            checkerPayload = {
+              statusCode: 200,
+              data: {
+                orderNumber: checkerStatus.orderNumber,
+                status: checkerStatus.status,
+                pickupWindow: checkerStatus.pickupWindow,
+                orderType: checkerStatus.orderType,
+                quoteRequired: checkerStatus.quoteRequired,
+                lineItems: checkerStatus.lineItems,
+                updatedAt: checkerStatus.updatedAt
+              }
+            };
+          }
+        }
+      }
+
+      var template = HtmlService.createTemplateFromFile('StatusChecker');
+      template.initialOrderNumber = checkerOrderNumber;
+      template.initialReceiptCode = checkerReceiptCode;
+      template.initialPayloadJson = JSON.stringify(checkerPayload);
+      return template.evaluate().setTitle('Order Status Checker');
     }
 
     if (action === 'status') {

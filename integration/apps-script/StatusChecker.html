@@ -112,20 +112,35 @@
 
       <div class="card">
         <label for="orderNumber">Order Number</label>
-        <input id="orderNumber" placeholder="RS-20260510-1234" />
+        <input id="orderNumber" placeholder="RS-20260510-1234" value="<?= initialOrderNumber ?>" />
 
         <label for="receiptCode">Receipt Code</label>
-        <input id="receiptCode" placeholder="AB12CD34" />
+        <input id="receiptCode" placeholder="AB12CD34" value="<?= initialReceiptCode ?>" />
 
         <button id="checkButton" type="button">Check Status</button>
 
         <div id="result"></div>
       </div>
+
+      <script id="initialPayload" type="application/json"><?!= initialPayloadJson ?></script>
     </div>
 
     <script>
+      var initialPayloadText = document.getElementById('initialPayload').textContent || '';
+      var INITIAL_PAYLOAD = null;
+      if (initialPayloadText && initialPayloadText !== 'null') {
+        try {
+          INITIAL_PAYLOAD = JSON.parse(initialPayloadText);
+        } catch (error) {
+          INITIAL_PAYLOAD = null;
+        }
+      }
       var button = document.getElementById('checkButton');
       button.addEventListener('click', checkStatus);
+
+      if (INITIAL_PAYLOAD) {
+        handleStatusPayload(INITIAL_PAYLOAD);
+      }
 
       function checkStatus() {
         var orderNumber = document.getElementById('orderNumber').value.trim();
@@ -156,34 +171,12 @@
         }
 
         var base = window.location.origin + window.location.pathname;
-        var url =
+        window.location.href =
           base +
-          '?action=status&orderNumber=' +
+          '?action=checker&orderNumber=' +
           encodeURIComponent(orderNumber) +
           '&receiptCode=' +
           encodeURIComponent(receiptCode);
-
-        fetch(url)
-          .then(function(resp) {
-            return resp.text().then(function(raw) {
-              var body = null;
-              try {
-                body = JSON.parse(raw);
-              } catch (error) {
-                throw new Error('Status service returned a non-JSON response. Check Web App deployment access and URL.');
-              }
-              return body;
-            });
-          })
-          .then(function(body) {
-            handleStatusPayload(body);
-          })
-          .catch(function(error) {
-            var message = (error && error.message)
-              ? error.message
-              : 'Unable to check status right now. Please try again.';
-            renderError(message);
-          });
       }
 
       function handleStatusPayload(body) {
