@@ -80,6 +80,17 @@ function doGet(e) {
       });
     }
 
+    if (action === 'debug-status') {
+      assertAuthorizedOpsUser_();
+      var debugOrderNumber = String((e.parameter.orderNumber || '')).trim();
+      var debugReceiptCode = String((e.parameter.receiptCode || '')).trim();
+      if (!debugOrderNumber && !debugReceiptCode) {
+        return jsonResponse_(400, { error: 'Provide orderNumber or receiptCode for debug lookup.' });
+      }
+
+      return jsonResponse_(200, getOrderStatusDebugSnapshot(debugReceiptCode, debugOrderNumber, 25));
+    }
+
     return jsonResponse_(404, { error: 'Unknown action.' });
   } catch (error) {
     return jsonResponse_(500, { error: error.message });
