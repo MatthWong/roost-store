@@ -6,22 +6,49 @@ function getSheetByNameOrThrow_(name) {
   return sheet;
 }
 
-var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'In Production', 'Ready for Pickup'];
+// Returns active products for the shopping cart.
+// Reads Name, Description, PriceCents, PaymentLink, ImageUrl, InventoryCount, SKU, ProductID.
+function getActiveProducts() {
+  var rows = getAllRowsAsObjects_(AppConfig.sheets.products);
+  return rows
+    .filter(function(row) {
+      var isActive = String(row.IsActive || '').trim().toLowerCase();
+      return isActive !== 'false';
+    })
+    .map(function(row) {
+      return {
+        productId:      String(row.ProductID      || '').trim(),
+        sku:            String(row.SKU             || '').trim(),
+        name:           String(row.Name            || '').trim(),
+        description:    String(row.Description     || '').trim(),
+        priceCents:     Number(row.PriceCents      || 0),
+        paymentLink:    String(row.PaymentLink      || '').trim(),
+        imageUrl:       String(row.ImageUrl        || '').trim(),
+        inventoryCount: row.InventoryCount !== '' && row.InventoryCount !== undefined
+                          ? Number(row.InventoryCount)
+                          : null  // null = unlimited / untracked
+      };
+    });
+}
+
+var DASHBOARD_STATUSES = ['Submitted', 'Under Review', 'Quote Provided', 'Quote Accepted', 'Pending Production', 'In Production', 'Ready for Pickup'];
 
 function getDashboardOrders() {
   var sheet = getSheetByNameOrThrow_(AppConfig.sheets.orders);
   var values = sheet.getDataRange().getValues();
   if (values.length < 2) {
-    return { needsReview: [], underReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+    return { needsReview: [], underReview: [], awaitingResponse: [], pendingProduction: [], inProduction: [], readyForPickup: [] };
   }
 
   var index = getHeaderIndexMap_(values[0]);
 
-  var queues = { needsReview: [], underReview: [], awaitingResponse: [], inProduction: [], readyForPickup: [] };
+  var queues = { needsReview: [], underReview: [], awaitingResponse: [], pendingProduction: [], inProduction: [], readyForPickup: [] };
 
   // Resolve column indices that may appear under different header names
   var orderTypeIdx    = firstDefinedIndex_(index, ['OrderType', 'Order Type']);
   var customerNameIdx = firstDefinedIndex_(index, ['CustomerName', 'Customer Name', 'Full Name', 'Name']);
+  var customerEmailIdx = firstDefinedIndex_(index, ['CustomerEmail', 'Customer Email', 'School Email']);
+  var isPaidIdx       = firstDefinedIndex_(index, ['IsPaid', 'Is Paid', 'Paid']);
 
   for (var i = 1; i < values.length; i += 1) {
     var row = values[i];
@@ -34,18 +61,22 @@ function getDashboardOrders() {
       orderNumber:      index.OrderNumber      !== undefined ? String(row[index.OrderNumber]      || '') : '',
       orderType:        orderTypeIdx           !== undefined ? String(row[orderTypeIdx]           || '') : '',
       customerName:     customerNameIdx        !== undefined ? String(row[customerNameIdx]        || '') : '',
+      customerEmail:    customerEmailIdx       !== undefined ? String(row[customerEmailIdx]       || '') : '',
       status:           status,
       updatedAt:        index.UpdatedAt        !== undefined ? row[index.UpdatedAt]               : '',
       itemSummary:      index.ItemSummary      !== undefined ? String(row[index.ItemSummary]      || '') : '',
       pickupWindow:     index.PickupWindow     !== undefined ? String(row[index.PickupWindow]     || '') : '',
-      duplicateWarning: index.DuplicateWarning !== undefined ? String(row[index.DuplicateWarning] || '') === 'true' : false
+      duplicateWarning: index.DuplicateWarning !== undefined ? String(row[index.DuplicateWarning] || '') === 'true' : false,
+      isPaid:           isPaidIdx              !== undefined ? String(row[isPaidIdx]              || '').toLowerCase() === 'true' : false
     };
 
-    if (status === 'Submitted')           { queues.needsReview.push(order); }
-    else if (status === 'Under Review')   { queues.underReview.push(order); }
-    else if (status === 'Quote Provided') { queues.awaitingResponse.push(order); }
-    else if (status === 'In Production')  { queues.inProduction.push(order); }
-    else if (status === 'Ready for Pickup') { queues.readyForPickup.push(order); }
+    if (status === 'Submitted')              { queues.needsReview.push(order); }
+    else if (status === 'Under Review')      { queues.underReview.push(order); }
+    else if (status === 'Quote Provided')    { queues.awaitingResponse.push(order); }
+    else if (status === 'Quote Accepted' ||
+             status === 'Pending Production'){ queues.pendingProduction.push(order); }
+    else if (status === 'In Production')     { queues.inProduction.push(order); }
+    else if (status === 'Ready for Pickup')  { queues.readyForPickup.push(order); }
   }
 
   return queues;

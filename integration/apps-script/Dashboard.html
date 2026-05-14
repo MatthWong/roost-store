@@ -159,6 +159,95 @@
       .pill-production   { background: var(--badge-b); }
       .pill-pickup       { background: var(--badge-g); }
 
+      .unpaid-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--badge-r);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        text-transform: uppercase;
+      }
+
+      .paid-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--badge-g);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+        text-transform: uppercase;
+      }
+
+      .mark-paid-btn {
+        background: var(--ok);
+        color: #1a1a2e;
+        border: 0;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .mark-paid-btn:hover { opacity: .85; }
+      .mark-paid-btn:disabled { opacity: .5; cursor: default; }
+
+      .cancel-btn {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .cancel-btn:hover { border-color: #e74c3c; color: #e74c3c; }
+      .cancel-btn:disabled { opacity: .4; cursor: default; }
+
+      .cancel-form {
+        margin-top: 8px;
+        display: none;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .cancel-form.open { display: flex; }
+
+      .cancel-form textarea {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid #e74c3c;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+        resize: vertical;
+        min-height: 60px;
+        font-family: inherit;
+      }
+
+      .cancel-form textarea::placeholder { color: var(--muted); }
+
+      .confirm-cancel-btn {
+        background: #e74c3c;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        align-self: flex-start;
+      }
+      .confirm-cancel-btn:hover { background: #c0392b; }
+      .confirm-cancel-btn:disabled { opacity: .5; cursor: default; }
+
       .order-meta {
         font-size: 12px;
         color: var(--muted);
@@ -297,6 +386,14 @@
         <div class="queue-body" id="list-awaitingResponse"></div>
       </div>
 
+      <div class="queue" id="q-pendingProduction">
+        <div class="queue-header" style="border-left: 3px solid var(--badge-o, #f97316);">
+          <h2>&#128336; Pending Production</h2>
+          <span class="count-badge" id="cnt-pendingProduction">0</span>
+        </div>
+        <div class="queue-body" id="list-pendingProduction"></div>
+      </div>
+
       <div class="queue" id="q-inProduction">
         <div class="queue-header" style="border-left: 3px solid var(--badge-b);">
           <h2>&#9881;&#65039; In Production</h2>
@@ -322,12 +419,13 @@
       var USER_ROLE   = '<?!= userRole ?>';
 
       var NEXT_STATUSES = {
-        'Submitted':       ['Under Review'],
-        'Under Review':    ['Quote Provided', 'In Production'],
-        'Quote Provided':  ['Quote Accepted'],
-        'Quote Accepted':  ['In Production'],
-        'In Production':   ['Ready for Pickup'],
-        'Ready for Pickup':['Picked Up']
+        'Submitted':          ['Under Review', 'In Production'],
+        'Under Review':       ['Quote Provided', 'In Production'],
+        'Quote Provided':     ['Quote Accepted'],
+        'Quote Accepted':     ['Pending Production'],
+        'Pending Production': ['In Production'],
+        'In Production':      ['Ready for Pickup'],
+        'Ready for Pickup':   ['Picked Up']
       };
 
       var PILL_CLASS = {
@@ -348,6 +446,16 @@
         } catch (e) { return String(val); }
       }
 
+      function toggleCancelForm(btn) {
+        var orderNumber = btn.getAttribute('data-order');
+        var form = document.getElementById('cancel-form-' + orderNumber);
+        if (!form) { return; }
+        var open = form.classList.toggle('open');
+        btn.textContent = open ? 'Never mind' : 'Cancel Order';
+        btn.style.color  = open ? 'var(--muted)' : '';
+        btn.style.borderColor = open ? 'var(--border)' : '';
+      }
+
       function esc(str) {
         return String(str || '')
           .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -356,7 +464,11 @@
 
       function buildActionRow(order) {
         if (USER_ROLE !== 'OFFICER' && USER_ROLE !== 'SPONSOR') { return ''; }
-        var nexts = NEXT_STATUSES[order.status] || [];
+        var nexts = (NEXT_STATUSES[order.status] || []).filter(function(s) {
+          // Cannot move to Picked Up until the order is paid
+          if (s === 'Picked Up' && !order.isPaid) { return false; }
+          return true;
+        });
         if (!nexts.length) { return ''; }
         var opts = nexts.map(function(s) {
           return '<option value="' + esc(s) + '">' + esc(s) + '</option>';
@@ -370,23 +482,42 @@
 
       function buildCard(order) {
         var pill = PILL_CLASS[order.status] || '';
+        var isTerminal = order.status === 'Picked Up' || order.status === 'Cancelled';
+        var payBadge = !isTerminal
+          ? (order.isPaid
+            ? '<span class="paid-badge">&#10003; Paid</span>'
+            : '<span class="unpaid-badge">&#9888; Unpaid</span>')
+          : '';
         var detail = '';
-        if (order.itemSummary) {
-          detail += '<div class="detail-row"><b>Item:</b> ' + esc(order.itemSummary) + '</div>';
-        }
-        if (order.pickupWindow) {
-          detail += '<div class="detail-row"><b>Pickup Window:</b> ' + esc(order.pickupWindow) + '</div>';
-        }
-        if (order.duplicateWarning) {
-          detail += '<span class="dup-warning">&#9888; Possible Duplicate</span>';
+        if (order.itemSummary)      { detail += '<div class="detail-row"><b>Item:</b> ' + esc(order.itemSummary) + '</div>'; }
+        if (order.pickupWindow)     { detail += '<div class="detail-row"><b>Pickup Window:</b> ' + esc(order.pickupWindow) + '</div>'; }
+        if (order.duplicateWarning) { detail += '<span class="dup-warning">&#9888; Possible Duplicate</span>'; }
+        if (!isTerminal && !order.isPaid && (USER_ROLE === 'OFFICER' || USER_ROLE === 'SPONSOR')) {
+          detail += '<div class="action-row" style="margin-top:10px;">'
+            + '<button class="mark-paid-btn" data-order="' + esc(order.orderNumber) + '">Mark as Paid</button>'
+            + '</div>'
+            + '<div class="action-msg" id="paid-msg-' + esc(order.orderNumber) + '"></div>';
         }
         detail += buildActionRow(order);
+        if (USER_ROLE === 'OFFICER' || USER_ROLE === 'SPONSOR') {
+          detail += '<div class="action-row" style="margin-top:6px;">'
+            + '<button class="cancel-btn" data-order="' + esc(order.orderNumber) + '" onclick="toggleCancelForm(this)">Cancel Order</button>'
+            + '</div>'
+            + '<div class="cancel-form" id="cancel-form-' + esc(order.orderNumber) + '">'
+            +   '<textarea placeholder="Reason for cancellation (required)…" id="cancel-reason-' + esc(order.orderNumber) + '"></textarea>'
+            +   '<button class="confirm-cancel-btn" data-order="' + esc(order.orderNumber) + '">Confirm Cancellation</button>'
+            + '</div>'
+            + '<div class="action-msg err" id="cancel-msg-' + esc(order.orderNumber) + '"></div>';
+        }
 
         return '<div class="order-card">' +
           '<div class="order-summary">' +
             '<div class="order-top">' +
               '<span class="order-number">' + esc(order.orderNumber) + '</span>' +
-              '<span class="status-pill ' + pill + '">' + esc(order.status) + '</span>' +
+              '<div style="display:flex;gap:5px;align-items:center;">' +
+                payBadge +
+                '<span class="status-pill ' + pill + '">' + esc(order.status) + '</span>' +
+              '</div>' +
             '</div>' +
             '<div class="order-meta">' +
               '<span><b>Type:</b> ' + esc(order.orderType || 'N/A') + '</span>' +
@@ -402,6 +533,7 @@
       function renderQueue(listId, cntId, orders) {
         var list = document.getElementById(listId);
         var cnt  = document.getElementById(cntId);
+        if (!list || !cnt) { return; }
         cnt.textContent = orders.length;
         cnt.className = 'count-badge' + (orders.length ? ' has-items' : '');
         if (!orders.length) {
@@ -415,6 +547,68 @@
             var icon = el.querySelector('.expand-icon');
             detail.classList.toggle('open');
             icon.innerHTML = detail.classList.contains('open') ? '&#9650;' : '&#9660;';
+          });
+        });
+        list.querySelectorAll('.confirm-cancel-btn').forEach(function(btn) {
+          btn.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            var orderNumber = btn.getAttribute('data-order');
+            var reasonEl = document.getElementById('cancel-reason-' + orderNumber);
+            var msgEl    = document.getElementById('cancel-msg-'  + orderNumber);
+            var reason   = reasonEl ? reasonEl.value.trim() : '';
+            if (!reason) {
+              if (msgEl) { msgEl.textContent = 'Please enter a cancellation reason.'; }
+              return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Cancelling…';
+            google.script.run
+              .withSuccessHandler(function(result) {
+                showToast(orderNumber + ' cancelled');
+                if (result) {
+                  USER_ROLE = result.userRole || USER_ROLE;
+                  renderAll(result.orders || {});
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = 'Confirm Cancellation';
+                }
+              })
+              .withFailureHandler(function(err) {
+                var msg = (err && err.message) ? err.message : 'Cancellation failed.';
+                showToast('Error: ' + msg);
+                if (msgEl) { msgEl.textContent = msg; }
+                btn.disabled = false;
+                btn.textContent = 'Confirm Cancellation';
+              })
+              .cancelOrderAndGetDashboard(orderNumber, reason);
+          });
+        });
+        list.querySelectorAll('.mark-paid-btn').forEach(function(btn) {
+          btn.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            var orderNumber = btn.getAttribute('data-order');
+            var msgEl = document.getElementById('paid-msg-' + orderNumber);
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            google.script.run
+              .withSuccessHandler(function(result) {
+                showToast(orderNumber + ' marked as paid');
+                if (result) {
+                  USER_ROLE = result.userRole || USER_ROLE;
+                  renderAll(result.orders || {});
+                } else {
+                  btn.disabled = false;
+                  btn.textContent = 'Mark as Paid';
+                }
+              })
+              .withFailureHandler(function(err) {
+                var msg = (err && err.message) ? err.message : 'Update failed.';
+                showToast('Error: ' + msg);
+                if (msgEl) { msgEl.textContent = msg; msgEl.className = 'action-msg err'; }
+                btn.disabled = false;
+                btn.textContent = 'Mark as Paid';
+              })
+              .markOrderPaidAndGetDashboard(orderNumber);
           });
         });
         list.querySelectorAll('.update-btn').forEach(function(btn) {
@@ -451,11 +645,12 @@
       }
 
       function renderAll(data) {
-        renderQueue('list-needsReview',     'cnt-needsReview',     data.needsReview     || []);
-        renderQueue('list-underReview',     'cnt-underReview',     data.underReview     || []);
-        renderQueue('list-awaitingResponse','cnt-awaitingResponse', data.awaitingResponse|| []);
-        renderQueue('list-inProduction',    'cnt-inProduction',    data.inProduction     || []);
-        renderQueue('list-readyForPickup',  'cnt-readyForPickup',  data.readyForPickup   || []);
+        renderQueue('list-needsReview',       'cnt-needsReview',       data.needsReview       || []);
+        renderQueue('list-underReview',       'cnt-underReview',       data.underReview       || []);
+        renderQueue('list-awaitingResponse',  'cnt-awaitingResponse',  data.awaitingResponse  || []);
+        renderQueue('list-pendingProduction', 'cnt-pendingProduction', data.pendingProduction  || []);
+        renderQueue('list-inProduction',      'cnt-inProduction',      data.inProduction       || []);
+        renderQueue('list-readyForPickup',    'cnt-readyForPickup',    data.readyForPickup     || []);
         document.getElementById('refresh-status').textContent =
           'Last refreshed: ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }

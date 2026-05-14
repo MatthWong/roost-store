@@ -69,6 +69,14 @@ function doGet(e) {
       });
     }
 
+    if (action === 'cart') {
+      var cartTemplate = HtmlService.createTemplateFromFile('Cart');
+      cartTemplate.webAppUrl = ScriptApp.getService().getUrl();
+      return cartTemplate.evaluate()
+        .setTitle('Roost Store — Shop')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
     if (action === 'mode') {
       assertAuthorizedOpsUser_();
       var nextMode = String((e.parameter.mode || '')).trim();

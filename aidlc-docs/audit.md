@@ -5,6 +5,76 @@
 
 ---
 
+## New Feature Request - Shopping Cart
+**Timestamp**: 2026-05-13T12:00:00Z
+**User Input**: "using AIDLC can we create a shopping cart feature for the google site so that users can select products and add them to the shopping cart before they check out. This should create an order that we can track using the existing tracking method."
+**AI Response**: Initiating AIDLC Inception Phase. Workspace detected as brownfield with existing Apps Script codebase. Proceeding to Requirements Analysis — creating clarifying questions file.
+**Context**: INCEPTION - Requirements Analysis for Shopping Cart feature
+
+---
+
+## Shopping Cart — Requirements Questions Answered
+**Timestamp**: 2026-05-13T13:00:00Z
+**User Input**: "answers complete"
+**Answers Summary**:
+- Q1: A — Apps Script HtmlService embed
+- Q2: A — Standard fixed-price products only
+- Q3: C — Standard products get Square payment link; custom orders separate
+- Q4: C — Multi-item for standard products; custom orders always separate
+- Q5: B — Minimal (name + email only)
+- Q6: B — Session only (no localStorage)
+- Q7: A — Quantity selector per line item
+- Q8: A — Creates Orders sheet row + sends confirmation email
+- Q9: C — Optional image (placeholder if none)
+- Q10: A — Enforce InventoryCount; block if 0
+- Security Extension: B — No
+- PBT Extension: C — No
+**AI Response**: Generated requirements doc and execution plan. Awaiting user approval to proceed to Code Generation.
+**Context**: INCEPTION - Workflow Planning complete for Shopping Cart
+
+---
+
+## Shopping Cart — Code Generation Complete
+**Timestamp**: 2026-05-13T14:00:00Z
+**User Input**: "A" (approved execution plan, proceed to code generation)
+**AI Response**: Generated all shopping cart code:
+- Created: integration/apps-script/Cart.html
+- Modified: integration/apps-script/OrderDataService.gs (added getActiveProducts)
+- Modified: integration/apps-script/OrderWorkflow.gs (added submitCartOrder, sendCartConfirmationEmail_)
+- Modified: integration/apps-script/WebApp.gs (added action=cart handler)
+- Modified: integration/docs/SETUP.md (cart endpoint docs)
+- Modified: integration/docs/GOOGLE_SITES_BUILD.md (Section 11 shopping cart page)
+**Context**: CONSTRUCTION - Code Generation complete for shopping-cart unit
+
+---
+
+## Dynamic Square Payment — Code Generation Complete
+**Timestamp**: 2026-05-14T02:00:00Z
+**User Input**: "A" (approved execution plan, proceed to code generation)
+**AI Response**: Generated all Square dynamic payment code:
+- Modified: integration/apps-script/Config.gs (environmentProperty, sandboxBaseUrl, getSquareBaseUrl_)
+- Modified: integration/apps-script/SquareClient.gs (squareRequest_ env-aware, added createCartPaymentLink_)
+- Modified: integration/apps-script/OrderWorkflow.gs (submitCartOrder wires Square link, sendCartConfirmationEmail_ single-link email)
+- Modified: integration/apps-script/Cart.html (success screen single Pay Now button)
+**Context**: CONSTRUCTION - Code Generation complete for square-payment unit
+
+---
+
+## Dynamic Square Payment — Workflow Plan Approval Prompt
+**Timestamp**: 2026-05-14T01:00:00Z
+**AI Response**: Presented execution plan (4 steps across Config.gs, SquareClient.gs, OrderWorkflow.gs, Cart.html) to user for approval.
+**Context**: INCEPTION - Workflow Planning complete; awaiting approval to begin CONSTRUCTION
+
+---
+
+## Dynamic Square Payment Creation — New Feature Request
+**Timestamp**: 2026-05-14T00:00:00Z
+**User Input**: "using AIDLC create dynamic payment creation using Square API"
+**AI Response**: Initiated AIDLC Inception Phase for dynamic Square payment creation. Workspace detected as brownfield with existing cart integration. Proceeding to Requirements Analysis — created clarifying questions file at aidlc-docs/inception/requirements/square-payment-questions.md.
+**Context**: INCEPTION - Requirements Analysis for Square dynamic payment feature
+
+---
+
 ## Ops Dashboard — Code Generation Complete
 **Timestamp**: 2026-05-13T00:00:00Z
 **User Input**: "A" (approved code generation plan)
